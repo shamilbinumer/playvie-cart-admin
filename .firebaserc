@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "playviecartweb"
+  },
+  "targets": {
+    "playviecartweb": {
+      "hosting": {
+        "playviecartAdmin": [
+          "playviecart-admin"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
