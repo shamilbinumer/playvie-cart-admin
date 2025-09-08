@@ -3,7 +3,6 @@ import {
   Settings,
   Folder,
   Tag,
-  Package,
   House
 } from "lucide-react";
 
@@ -17,7 +16,7 @@ export const menuData = [
   },
   {
     id: 2,
-    title: "Master",
+    title: "Master Data",
     icon: Settings,
     url: null,
     children: [
@@ -25,13 +24,13 @@ export const menuData = [
         id: 21,
         title: "Category",
         icon: Folder,
-        url: "/master/category"
+        url: "/master/category-list"
       },
       {
         id: 22,
         title: "Brand",
         icon: Tag,
-        url: "/master/brand"
+        url: "/master/brand-list"
       },
     ]
   },

@@ -109,7 +109,7 @@ const Sidebar = () => {
                   <Link
                     key={child.id}
                     to={child.url}
-                    className="flex items-center p-2 rounded-md text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 text-decoration-none"
+                    className="flex items-center p-1 rounded-sm text-gray-600 hover:text-grap-600 hover:bg-gray-200 transition-all duration-200 text-decoration-none"
                     onClick={closeMobileMenu}
                   >
                     <ChildIconComponent className="w-4 h-4 mr-3 flex-shrink-0" />
@@ -153,7 +153,7 @@ const Sidebar = () => {
           ${/* Mobile styles */ ''}
           fixed md:sticky top-14 left-0 z-40 
           ${/* Width responsive */ ''}
-          w-64 sm:w-72 md:w-55 lg:w-64 xl:w-72
+          w-64 sm:w-72 md:w-55 lg:w-60 xl:w-60
           ${/* Height */ ''}
           h-[calc(100vh-3.5rem)]
           ${/* Background and border */ ''}
