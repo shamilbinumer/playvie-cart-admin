@@ -26,7 +26,7 @@ export default function Navbar() {
 
           {/* Right Side - User Profile */}
           <div className="hidden md:flex items-center space-x-4 lg:w-48 justify-end">
-            <div className="flex items-center space-x-3  rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors cursor-pointer">
+            <div className="flex items-center space-x-3  rounded-lg px-3 py-2 transition-colors cursor-pointer">
               <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
                 <User className="h-5 w-5 text-white" />
               </div>
