@@ -23,7 +23,7 @@ const BreadCrumb = ({ items = [], showHome = true, separator = "chevron", classN
   }
   
   return (
-    <nav className={`flex items-center space-x-2 text-sm ${className}`} aria-label="Breadcrumb">
+    <nav className={`flex items-center space-x-2 px-2 text-sm ${className}`} aria-label="Breadcrumb">
       <ol className="flex items-center space-x-2">
         {breadcrumbItems.map((item, index) => (
           <li key={index} className="flex items-center">
