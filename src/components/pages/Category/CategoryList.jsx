@@ -2,8 +2,11 @@ import React, { useState } from "react";
 import BreadCrumb from "../../layout/BreadCrumb";
 import DataTable from "../../layout/DataTable";
 import AddButton from "../../layout/AddButton";
+import { PageHeader } from "../../common/PageHeader";
+import { useNavigate } from "react-router-dom";
 
 const CategoryList = () => {
+  const navigate = useNavigate()
   // Sample data - replace with your actual data source
   const [categories] = useState([
     {
@@ -80,16 +83,15 @@ const CategoryList = () => {
           { label: "Category List", path: "#" },
         ]}
       />
-      
+
       <div className="mt-6">
-        <div className="mb-4 flex justify-between items-center">
-         <div> <h1 className="text-2xl font-semibold text-gray-900">Category List</h1>
-          <p className="text-gray-600">Manage your product categories</p></div>
-          <div>
-            <AddButton title="Add New Category"/>
-          </div>
-        </div>
-        
+        <PageHeader
+          title="Settings"
+          description="Configure your application preferences"
+          className="border-b border-gray-200 pb-4"
+          actionButton={<AddButton title="Create New" onClick={()=>navigate('/master/add-category')} />}
+        />
+
         <DataTable
           columns={columns}
           data={categories}
