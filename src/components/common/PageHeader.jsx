@@ -7,7 +7,7 @@ export const PageHeader = ({
   className = ""
 }) => {
   return (
-    <div className={`mb-4 flex justify-between items-center ${className}`}>
+    <div className={`my-4 px-2 flex justify-between items-center ${className}`}>
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
         {description && (

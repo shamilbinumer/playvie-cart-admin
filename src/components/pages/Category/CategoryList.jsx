@@ -86,8 +86,8 @@ const CategoryList = () => {
 
       <div className="mt-6">
         <PageHeader
-          title="Settings"
-          description="Configure your application preferences"
+          title="Category List"
+          // description="Configure your application preferences"
           className="border-b border-gray-200 pb-4"
           actionButton={<AddButton title="Create New" onClick={()=>navigate('/master/add-category')} />}
         />
