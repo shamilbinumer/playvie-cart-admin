@@ -1,9 +1,16 @@
 import React from 'react'
+import BreadCrumb from '../../layout/BreadCrumb'
 
 const CategoryForm = () => {
   return (
     <div>
-      category form
+      <BreadCrumb
+        items={[
+          { label: "Master Data", path: "#" },
+          { label: "Category List", path: "/master/category-list" },
+          { label: "Add Category", path: "#" },
+        ]}
+      />
     </div>
   )
 }

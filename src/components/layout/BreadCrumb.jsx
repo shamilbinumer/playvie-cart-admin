@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom'
 const BreadCrumb = ({ items = [], showHome = true, separator = "chevron", className = "" }) => {
   // Default home item
   const homeItem = { label: "Home", path: "/" }
-  const navigate = useNavigate()
+  const navigate = useNavigate() 
+  
   
   // Combine home with provided items if showHome is true
   const breadcrumbItems = showHome ? [homeItem, ...items] : items
