@@ -1,9 +1,11 @@
 import React from 'react'
 import { ChevronRight, Home } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const BreadCrumb = ({ items = [], showHome = true, separator = "chevron", className = "" }) => {
   // Default home item
   const homeItem = { label: "Home", path: "/" }
+  const navigate = useNavigate()
   
   // Combine home with provided items if showHome is true
   const breadcrumbItems = showHome ? [homeItem, ...items] : items
@@ -37,7 +39,7 @@ const BreadCrumb = ({ items = [], showHome = true, separator = "chevron", classN
                 onClick={(e) => {
                   e.preventDefault()
                   // Handle navigation here - you can replace this with your router
-                  console.log(`Navigate to: ${item.path}`)
+                  navigate(item.path)
                 }}
               >
                 {index === 0 && showHome && item.label === "Home" ? (
