@@ -4,6 +4,7 @@ import DataTable from "../../layout/DataTable";
 import AddButton from "../../layout/AddButton";
 import { PageHeader } from "../../common/PageHeader";
 import { useNavigate } from "react-router-dom";
+import { SquarePen, Trash2 } from "lucide-react";
 
 const CategoryList = () => {
   const navigate = useNavigate()
@@ -64,14 +65,12 @@ const CategoryList = () => {
     {
       label: 'Edit',
       handler: handleEdit,
-      className: 'bg-blue-500 hover:bg-blue-600',
-      icon: '✏️'
+      icon: SquarePen
     },
     {
       label: 'Delete',
       handler: handleDelete,
-      className: 'bg-red-500 hover:bg-red-600',
-      icon: '🗑️'
+      icon: Trash2
     }
   ];
 

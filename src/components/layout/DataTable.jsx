@@ -6,7 +6,7 @@ const DataTable = ({ columns, data, actions }) => {
       return index + 1;
     }
     
-    if (column.key === 'thumbnail') {
+    if (column.key === 'thumbnail' || column.key=== 'image') {
       return (
         <div className="w-15 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
           {item[column.key] ? (
@@ -43,10 +43,10 @@ const DataTable = ({ columns, data, actions }) => {
             <button
               key={actionIndex}
               onClick={() => action.handler(item)}
-              className={`px-3 py-1 text-white text-xs rounded transition-colors ${action.className || 'bg-gray-500 hover:bg-gray-600'}`}
+              className={`flex items-center justify-center rounded transition-colors ${action.label==='Edit'?'text-green-600':''}  ${action.label==='Delete'?'text-red-600':''}`}
               disabled={action.disabled && action.disabled(item)}
             >
-              {action.icon && <span className="mr-1">{action.icon}</span>}
+              {action.icon && <span className="mr-1 "><action.icon width={20}/></span>}
               {/* {action.label} */}
             </button>
           ))}
@@ -100,3 +100,4 @@ const DataTable = ({ columns, data, actions }) => {
 };
 
 export default DataTable;
+

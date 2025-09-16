@@ -8,6 +8,8 @@ import CategoryList from "./components/pages/Category/CategoryList";
 import CategoryForm from "./components/pages/Category/CategoryForm";
 import BrandList from "./components/pages/Brand/BrandList";
 import BrandForm from "./components/pages/Brand/BrandForm";
+import ProductList from "./components/pages/Product/ProductList";
+import ProductForm from "./components/pages/Product/ProductForm";
 
 export default function App() {
   return (
@@ -25,6 +27,8 @@ export default function App() {
             <Route path="/master/add-category" element={<CategoryForm />} />
             <Route path="/master/brand-list" element={<BrandList />} />
             <Route path="/master/add-brand" element={<BrandForm />} />
+            <Route path="/product-list" element={<ProductList />} />
+            <Route path="/add-product" element={<ProductForm />} />
 
 
             <Route path="*" element={<NotFound />} />

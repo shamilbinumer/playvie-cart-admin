@@ -3,7 +3,8 @@ import {
   Settings,
   Folder,
   Tag,
-  House
+  House,
+  Box
 } from "lucide-react";
 
 export const menuData = [
@@ -33,6 +34,13 @@ export const menuData = [
         url: "/master/brand-list"
       },
     ]
+  },
+   {
+    id: 3,
+    title: "Product",
+    icon: Box,
+    url: "/product-list",
+    children: []
   },
 
 
