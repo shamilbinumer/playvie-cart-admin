@@ -9,7 +9,7 @@ const FormContainer = ({
   submitText = "Submit",
 }) => {
   return (
-    <div className=" mx-auto p-1">
+    <div className=" mx-auto p-1 pb-8">
       <div className="bg-white rounded-lg">
         {/* Header */}
         <div className="p-3">
