@@ -1,106 +1,106 @@
-import React, { useState, useRef } from 'react';
-import { Upload, X, AlertCircle, Plus } from 'lucide-react';
+import React, { useState, useRef } from "react";
+import { Upload, X, AlertCircle, Loader2, Plus } from "lucide-react";
+import imageCompression from "browser-image-compression";
 
 const MultipleImageUpload = ({
+  label = "Upload Images",
+  required = false,
   onImagesSelect = () => {},
   onImagesUpdate = () => {},
-  maxSizeMB = 5,
-  maxImages = 10,
-  acceptedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-  className = '',
-  placeholder = 'Click to upload or drag and drop images here'
+  maxSizeKB = 100, // default compress limit 100KB
+  maxImages = 5,
+  acceptedTypes = ["image/jpeg", "image/png", "image/webp"],
+  className = "",
+  placeholder = "Click to upload or drag and drop images here",
 }) => {
   const [images, setImages] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [loadingIds, setLoadingIds] = useState([]); // per-image loading
   const fileInputRef = useRef(null);
 
   const validateFile = (file) => {
     if (!acceptedTypes.includes(file.type)) {
-      return `Invalid file type. Accepted types: ${acceptedTypes.join(', ')}`;
+      return `Invalid type. Accepted: ${acceptedTypes.join(", ")}`;
     }
-    
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      return `File size too large. Maximum size: ${maxSizeMB}MB`;
-    }
-    
     return null;
   };
 
-  const processFiles = (files) => {
+  const compressFile = async (file) => {
+    if (file.size <= maxSizeKB * 1024) return file;
+
+    const options = {
+      maxSizeMB: maxSizeKB / 1024, // convert to MB
+      maxWidthOrHeight: 1024,
+      useWebWorker: true,
+    };
+
+    return await imageCompression(file, options);
+  };
+
+  const processFiles = async (files) => {
     const fileArray = Array.from(files);
-    setError('');
 
     if (images.length + fileArray.length > maxImages) {
-      setError(`Maximum ${maxImages} images allowed. You can upload ${maxImages - images.length} more.`);
+      setError(
+        `Maximum ${maxImages} images allowed. You can upload ${
+          maxImages - images.length
+        } more.`
+      );
       return;
     }
 
-    const validFiles = [];
     for (const file of fileArray) {
       const validationError = validateFile(file);
       if (validationError) {
         setError(validationError);
         return;
       }
-      validFiles.push(file);
     }
 
-    const newImages = validFiles.map((file, index) => ({
-      id: Date.now() + index,
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name,
-      size: file.size
-    }));
+    const newImages = [];
+
+    for (const file of fileArray) {
+      const tempId = Date.now() + Math.random();
+      setLoadingIds((prev) => [...prev, tempId]);
+
+      try {
+        const compressed = await compressFile(file);
+        const finalFile = compressed;
+
+        newImages.push({
+          id: tempId,
+          file: finalFile,
+          preview: URL.createObjectURL(finalFile),
+          name: finalFile.name,
+          size: finalFile.size,
+        });
+      } catch {
+        setError("Error compressing one or more images");
+      } finally {
+        setLoadingIds((prev) => prev.filter((id) => id !== tempId));
+      }
+    }
 
     const updatedImages = [...images, ...newImages];
     setImages(updatedImages);
-    onImagesSelect(updatedImages.map(img => img.file));
+    onImagesSelect(updatedImages.map((img) => img.file));
+    setError("");
   };
 
   const removeImage = (imageId) => {
-    const imageToRemove = images.find(img => img.id === imageId);
-    if (imageToRemove) {
-      URL.revokeObjectURL(imageToRemove.preview);
-    }
-    
-    const updatedImages = images.filter(img => img.id !== imageId);
+    const imageToRemove = images.find((img) => img.id === imageId);
+    if (imageToRemove) URL.revokeObjectURL(imageToRemove.preview);
+
+    const updatedImages = images.filter((img) => img.id !== imageId);
     setImages(updatedImages);
-    onImagesUpdate(updatedImages.map(img => img.file));
-    setError('');
-  };
-
-  const clearAllImages = () => {
-    images.forEach(image => {
-      URL.revokeObjectURL(image.preview);
-    });
-    setImages([]);
-    onImagesUpdate([]);
-    setError('');
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const files = e.dataTransfer.files;
-    processFiles(files);
+    onImagesUpdate(updatedImages.map((img) => img.file));
+    setError("");
   };
 
   const handleFileSelect = (e) => {
-    const files = e.target.files;
-    if (files) {
-      processFiles(files);
+    if (e.target.files.length > 0) {
+      processFiles(e.target.files);
     }
   };
 
@@ -111,130 +111,133 @@ const MultipleImageUpload = ({
   };
 
   const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getTotalSize = () => {
-    return images.reduce((total, img) => total + img.size, 0);
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Upload Area */}
+      {/* Label */}
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+
+      {/* Upload Section */}
       <div
         className={`
-          border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all
-          ${isDragOver 
-            ? 'border-blue-500 bg-blue-50' 
-            : images.length >= maxImages 
-              ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-              : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+          border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-all
+          ${
+            isDragOver
+              ? "border-blue-500 bg-blue-50"
+              : images.length >= maxImages
+              ? "border-gray-200 bg-gray-50 cursor-not-allowed"
+              : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
           }
-          ${error ? 'border-red-300 bg-red-50' : ''}
+          ${error ? "border-red-300 bg-red-50" : ""}
         `}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          if (e.dataTransfer.files.length > 0) {
+            processFiles(e.dataTransfer.files);
+          }
+        }}
         onClick={handleClick}
       >
         <input
           ref={fileInputRef}
           type="file"
-          accept={acceptedTypes.join(',')}
+          accept={acceptedTypes.join(",")}
           multiple
           onChange={handleFileSelect}
           className="hidden"
+          required={required}
           disabled={images.length >= maxImages}
         />
-        
-        <div className="flex flex-col items-center space-y-2">
-          {images.length >= maxImages ? (
-            <div className="text-gray-400">
-              <AlertCircle className="w-12 h-12 mx-auto mb-2" />
-              <p className="text-sm">Maximum images reached ({maxImages}/{maxImages})</p>
-            </div>
-          ) : (
-            <>
-              <Upload className={`w-12 h-12 ${isDragOver ? 'text-blue-500' : 'text-gray-400'}`} />
-              <p className="text-sm text-gray-600">{placeholder}</p>
-              <p className="text-xs text-gray-500">
-                {acceptedTypes.map(type => type.split('/')[1]).join(', ').toUpperCase()} up to {maxSizeMB}MB each
-              </p>
-              <p className="text-xs text-blue-600">
-                {images.length}/{maxImages} images selected
-              </p>
-            </>
-          )}
+
+        <div className="flex flex-col items-center space-y-1">
+          <Upload
+            className={`w-8 h-8 ${
+              isDragOver ? "text-blue-500" : "text-gray-400"
+            }`}
+          />
+          <p className="text-xs text-gray-600">{placeholder}</p>
+          <p className="text-[11px] text-gray-500">
+            JPG, PNG, WEBP • Max {maxSizeKB}KB each
+          </p>
+          <p className="text-[11px] text-blue-600">
+            {images.length}/{maxImages} selected
+          </p>
         </div>
       </div>
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
-        <div className="mt-2 flex items-center space-x-2 text-red-600 text-sm">
+        <div className="mt-1 flex items-center space-x-1 text-red-600 text-xs">
           <AlertCircle className="w-4 h-4" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Images Grid */}
+      {/* Preview Grid */}
       {images.length > 0 && (
-        <div className="mt-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-medium text-gray-700">
-              Selected Images ({images.length}) - Total: {formatFileSize(getTotalSize())}
-            </h4>
-            <button
-              onClick={clearAllImages}
-              className="text-xs text-red-600 hover:text-red-800 underline"
-            >
-              Clear All
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div className="mt-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
             {images.map((image) => (
               <div key={image.id} className="relative group">
-                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border">
-                  <img
-                    src={image.preview}
-                    alt={image.name}
-                    className="w-full h-full object-cover"
-                  />
+                <div className="aspect-square rounded-md overflow-hidden bg-gray-100 border">
+                  {loadingIds.includes(image.id) ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                    </div>
+                  ) : (
+                    <img
+                      src={image.preview}
+                      alt={image.name}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                 </div>
-                
-                {/* Remove Button */}
-                <button
-                  onClick={() => removeImage(image.id)}
-                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                  type="button"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-                
-                {/* Image Info */}
-                <div className="mt-1 text-xs text-gray-500">
-                  <p className="truncate font-medium" title={image.name}>
-                    {image.name}
-                  </p>
+
+                {/* Remove */}
+                {!loadingIds.includes(image.id) && (
+                  <button
+                    onClick={() => removeImage(image.id)}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
+                    type="button"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+
+                {/* Info */}
+                <div className="mt-1 text-[11px] text-gray-500 truncate">
+                  <p title={image.name}>{image.name}</p>
                   <p>{formatFileSize(image.size)}</p>
                 </div>
               </div>
             ))}
-            
-            {/* Add More Button */}
+
+            {/* Add More */}
             {images.length < maxImages && (
-              <div 
-                className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors"
+              <div
+                className="aspect-square rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition"
                 onClick={handleClick}
               >
-                <div className="text-center">
-                  <Plus className="w-8 h-8 text-gray-400 mx-auto mb-1" />
-                  <p className="text-xs text-gray-500">Add More</p>
-                </div>
+                <Plus className="w-5 h-5 text-gray-400" />
               </div>
             )}
           </div>
@@ -244,41 +247,4 @@ const MultipleImageUpload = ({
   );
 };
 
-// Demo usage
-const MultipleImageDemo = () => {
-  const [selectedFiles, setSelectedFiles] = useState([]);
-
-  return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Multiple Image Upload</h1>
-      
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <MultipleImageUpload
-          maxImages={8}
-          onImagesSelect={(files) => {
-            setSelectedFiles(files);
-            console.log('Images selected:', files);
-          }}
-          onImagesUpdate={(files) => {
-            setSelectedFiles(files);
-            console.log('Images updated:', files);
-          }}
-          placeholder="Upload images for your gallery"
-          maxSizeMB={10}
-          acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
-        />
-        
-        {selectedFiles.length > 0 && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
-            <p className="text-sm text-green-800">
-              ✓ {selectedFiles.length} images ready to upload
-              ({(selectedFiles.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024).toFixed(2)} MB total)
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default MultipleImageDemo;
+export default MultipleImageUpload;

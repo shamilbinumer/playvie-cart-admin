@@ -1,121 +1,110 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, AlertCircle } from 'lucide-react';
+import { Upload, X, AlertCircle, Loader2 } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
 
 const SingleImageUpload = ({
+  label = 'Upload Image',
   onImageSelect = () => {},
   onImageRemove = () => {},
-  maxSizeMB = 5,
-  acceptedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+  maxSizeKB = 100, // default max size 100KB
+  acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'],
   className = '',
-  placeholder = 'Click to upload or drag and drop an image here'
+  placeholder = 'Click to upload or drag and drop an image here',
+  required = false
 }) => {
   const [image, setImage] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
   const validateFile = (file) => {
     if (!acceptedTypes.includes(file.type)) {
-      return `Invalid file type. Accepted types: ${acceptedTypes.join(', ')}`;
+      return `Invalid file type. Accepted: ${acceptedTypes.join(', ')}`;
     }
-    
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      return `File size too large. Maximum size: ${maxSizeMB}MB`;
-    }
-    
     return null;
   };
 
-  const processFile = (file) => {
+  const processFile = async (file) => {
     setError('');
-    
+    setLoading(true); // start loader
+
     const validationError = validateFile(file);
     if (validationError) {
       setError(validationError);
+      setLoading(false);
       return;
     }
 
-    // Clean up previous image URL
-    if (image) {
-      URL.revokeObjectURL(image.preview);
+    let finalFile = file;
+
+    // Compress if bigger than allowed
+    if (file.size > maxSizeKB * 1024) {
+      try {
+        const options = {
+          maxSizeMB: maxSizeKB / 1024, // 0.1 MB for 100KB
+          maxWidthOrHeight: 1024,
+          useWebWorker: true,
+        };
+        finalFile = await imageCompression(file, options);
+      } catch (err) {
+        setError('Error compressing image');
+        setLoading(false);
+        return;
+      }
     }
+
+    // Clean old preview
+    if (image) URL.revokeObjectURL(image.preview);
 
     const newImage = {
       id: Date.now(),
-      file,
-      preview: URL.createObjectURL(file),
-      name: file.name,
-      size: file.size
+      file: finalFile,
+      preview: URL.createObjectURL(finalFile),
+      name: finalFile.name,
+      size: finalFile.size,
     };
 
     setImage(newImage);
-    onImageSelect(file);
+    onImageSelect(finalFile);
+    setLoading(false); // stop loader
   };
 
   const removeImage = () => {
-    if (image) {
-      URL.revokeObjectURL(image.preview);
-    }
+    if (image) URL.revokeObjectURL(image.preview);
     setImage(null);
     onImageRemove();
     setError('');
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      processFile(files[0]);
-    }
-  };
-
   const handleFileSelect = (e) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      processFile(files[0]);
+    if (e.target.files.length > 0) {
+      processFile(e.target.files[0]);
     }
-  };
-
-  const handleClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Upload Area */}
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+
       <div
         className={`
-          border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all
-          ${isDragOver 
-            ? 'border-blue-500 bg-blue-50' 
-            : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
-          }
+          border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-all
+          ${isDragOver ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'}
           ${error ? 'border-red-300 bg-red-50' : ''}
         `}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleClick}
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={(e) => { e.preventDefault(); setIsDragOver(false); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+        }}
+        onClick={() => fileInputRef.current?.click()}
       >
         <input
           ref={fileInputRef}
@@ -124,13 +113,22 @@ const SingleImageUpload = ({
           onChange={handleFileSelect}
           className="hidden"
         />
-        
-        <div className="flex flex-col items-center space-y-2">
-          <Upload className={`w-12 h-12 ${isDragOver ? 'text-blue-500' : 'text-gray-400'}`} />
-          <p className="text-sm text-gray-600">{placeholder}</p>
-          <p className="text-xs text-gray-500">
-            {acceptedTypes.map(type => type.split('/')[1]).join(', ').toUpperCase()} up to {maxSizeMB}MB
+
+        {/* Loader or Upload Icon */}
+        <div className="flex flex-col items-center space-y-1">
+          {loading ? (
+            <Loader2 className="w-8 h-8 text-[#81184e] animate-spin" />
+          ) : (
+            <Upload className={`w-8 h-8 ${isDragOver ? 'text-[#81184e]' : 'text-gray-400'}`} />
+          )}
+          <p className="text-xs text-gray-600">
+            {loading ? 'Compressing image...' : placeholder}
           </p>
+          {!loading && (
+            <p className="text-[11px] text-gray-500">
+              JPG, PNG, WEBP • Max {maxSizeKB}KB
+            </p>
+          )}
         </div>
       </div>
 
@@ -143,33 +141,24 @@ const SingleImageUpload = ({
       )}
 
       {/* Image Preview */}
-      {image && (
-        <div className="mt-4">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Selected Image</h4>
-          
+      {image && !loading && (
+        <div className="mt-3">
+          <h4 className="text-sm font-medium text-gray-700 mb-1">Selected Image</h4>
           <div className="relative inline-block">
-            <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-100 border">
-              <img
-                src={image.preview}
-                alt={image.name}
-                className="w-full h-full object-cover"
-              />
+            <div className="w-28 h-28 rounded-md overflow-hidden bg-gray-100 border">
+              <img src={image.preview} alt={image.name} className="w-full h-full object-cover" />
             </div>
-            
-            {/* Remove Button */}
             <button
               onClick={removeImage}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
               type="button"
             >
               <X className="w-3 h-3" />
             </button>
           </div>
-          
-          {/* Image Info */}
-          <div className="mt-2 text-xs text-gray-500">
+          <div className="mt-1 text-xs text-gray-500">
             <p className="font-medium">{image.name}</p>
-            <p>{formatFileSize(image.size)}</p>
+            <p>{(image.size / 1024).toFixed(1)} KB</p>
           </div>
         </div>
       )}
@@ -177,40 +166,4 @@ const SingleImageUpload = ({
   );
 };
 
-// Demo usage
-const SingleImageDemo = () => {
-  const [selectedFile, setSelectedFile] = useState(null);
-
-  return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Single Image Upload</h1>
-      
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <SingleImageUpload
-          onImageSelect={(file) => {
-            setSelectedFile(file);
-            console.log('Image selected:', file);
-          }}
-          onImageRemove={() => {
-            setSelectedFile(null);
-            console.log('Image removed');
-          }}
-          placeholder="Upload your profile picture"
-          maxSizeMB={3}
-          acceptedTypes={['image/jpeg', 'image/png']}
-        />
-        
-        {selectedFile && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
-            <p className="text-sm text-green-800">
-              ✓ Image ready to upload: {selectedFile.name} 
-              ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default SingleImageDemo;
+export default SingleImageUpload;
