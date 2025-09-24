@@ -62,13 +62,15 @@ const BrandList = () => {
     }
   ];
   return (
-    <div className=''>
-      <BreadCrumb
+  <>
+    <BreadCrumb
         items={[
           { label: "Master Data", path: "#" },
           { label: "Brand List", path: "#" },
         ]}
       />
+    <div className='p-2'>
+    
       <PageHeader
         title="Brand List"
         // description="Configure your application preferences"
@@ -81,6 +83,7 @@ const BrandList = () => {
         actions={actions}
       />
     </div>
+  </>
   )
 }
 

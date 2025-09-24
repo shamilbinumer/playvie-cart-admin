@@ -75,29 +75,32 @@ const CategoryList = () => {
   ];
 
   return (
-    <div className="px-2">
+    <>
       <BreadCrumb
         items={[
           { label: "Master Data", path: "#" },
           { label: "Category List", path: "#" },
         ]}
       />
+      <div className="px-2">
 
-      <div className="mt-6">
-        <PageHeader
-          title="Category List"
-          // description="Configure your application preferences"
-          className="border-b border-gray-200 pb-4"
-          actionButton={<AddButton title="Create New" onClick={()=>navigate('/master/add-category')} />}
-        />
 
-        <DataTable
-          columns={columns}
-          data={categories}
-          actions={actions}
-        />
+        <div className="mt-6">
+          <PageHeader
+            title="Category List"
+            // description="Configure your application preferences"
+            className="border-b border-gray-200 pb-4"
+            actionButton={<AddButton title="Create New" onClick={() => navigate('/master/add-category')} />}
+          />
+
+          <DataTable
+            columns={columns}
+            data={categories}
+            actions={actions}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

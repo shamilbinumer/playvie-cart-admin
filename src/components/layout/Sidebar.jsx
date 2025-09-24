@@ -1,6 +1,6 @@
 // components/layout/Sidebar.js
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { menuData } from "../../utils/menuData";
 
@@ -8,6 +8,7 @@ const Sidebar = () => {
   const [openMenus, setOpenMenus] = useState({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const location = useLocation();
 
   // Check if screen is mobile
   useEffect(() => {
@@ -24,6 +25,25 @@ const Sidebar = () => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  // Auto-open parent menus when child is active
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const newOpenMenus = { ...openMenus };
+    
+    menuData.forEach((item) => {
+      if (item.children) {
+        const hasActiveChild = item.children.some(child => 
+          child.url === currentPath || currentPath.startsWith(child.url + '/')
+        );
+        if (hasActiveChild) {
+          newOpenMenus[item.id] = true;
+        }
+      }
+    });
+    
+    setOpenMenus(newOpenMenus);
+  }, [location.pathname]);
+
   // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -35,6 +55,17 @@ const Sidebar = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, isMobileMenuOpen]);
+
+  // Helper function to check if a path is active
+  const isPathActive = (url) => {
+    return location.pathname === url || location.pathname.startsWith(url + '/');
+  };
+
+  // Helper function to check if a parent has active children
+  const hasActiveChild = (item) => {
+    if (!item.children) return false;
+    return item.children.some(child => isPathActive(child.url));
+  };
 
   const toggleMenu = (menuId) => {
     setOpenMenus(prev => ({
@@ -57,21 +88,37 @@ const Sidebar = () => {
     const hasChildren = item.children && item.children.length > 0;
     const isOpen = openMenus[item.id];
     const IconComponent = item.icon;
+    const isParentActive = hasActiveChild(item);
+    const isDirectActive = !hasChildren && isPathActive(item.url);
 
     return (
       <div key={item.id} className="">
         {/* Parent Menu Item */}
         <div
-          className={`flex items-center justify-between p-3 py-2 rounded-sm cursor-pointer transition-all duration-200 hover:bg-blue-50 ${
-            hasChildren ? 'text-gray-700' : 'text-gray-600 hover:text-gray-600'
+          className={`flex items-center justify-between p-3 py-2 rounded-sm cursor-pointer transition-all duration-200 ${
+            hasChildren 
+              ? `${isParentActive 
+                  ? 'bg-blue-100 text-blue-700 border-l-4 border-blue-500' 
+                  : 'text-gray-700 hover:bg-blue-50'
+                }` 
+              : `${isDirectActive 
+                  ? 'bg-blue-100 text-blue-700 border-l-4 border-blue-500' 
+                  : 'text-gray-600 hover:text-gray-600 hover:bg-blue-50'
+                }`
           }`}
           onClick={() => hasChildren ? toggleMenu(item.id) : null}
         >
           {hasChildren ? (
             // Parent with children - clickable to toggle
             <div className="flex items-center flex-1">
-              <IconComponent className="w-5 h-5 mr-3 flex-shrink-0" />
-              <span className="font-medium text-sm sm:text-base truncate">{item.title}</span>
+              <IconComponent className={`w-5 h-5 mr-3 flex-shrink-0 ${
+                isParentActive ? 'text-blue-600' : ''
+              }`} />
+              <span className={`font-medium text-sm sm:text-base truncate ${
+                isParentActive ? 'text-blue-700 font-semibold' : ''
+              }`}>
+                {item.title}
+              </span>
             </div>
           ) : (
             // Menu item without children - Link
@@ -80,8 +127,14 @@ const Sidebar = () => {
               className="flex items-center flex-1 text-decoration-none"
               onClick={closeMobileMenu}
             >
-              <IconComponent className="w-5 h-5 mr-3 flex-shrink-0" />
-              <span className="font-medium text-sm sm:text-base truncate">{item.title}</span>
+              <IconComponent className={`w-5 h-5 mr-3 flex-shrink-0 ${
+                isDirectActive ? 'text-blue-600' : ''
+              }`} />
+              <span className={`font-medium text-sm sm:text-base truncate ${
+                isDirectActive ? 'text-blue-700 font-semibold' : ''
+              }`}>
+                {item.title}
+              </span>
             </Link>
           )}
           
@@ -90,7 +143,7 @@ const Sidebar = () => {
             <ChevronDown
               className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${
                 isOpen ? 'rotate-180' : 'rotate-0'
-              }`}
+              } ${isParentActive ? 'text-blue-600' : ''}`}
             />
           )}
         </div>
@@ -105,15 +158,27 @@ const Sidebar = () => {
             <div className="ml-4 sm:ml-6 mt-1 space-y-1">
               {item.children.map((child) => {
                 const ChildIconComponent = child.icon;
+                const isChildActive = isPathActive(child.url);
+                
                 return (
                   <Link
                     key={child.id}
                     to={child.url}
-                    className="flex items-center p-1 rounded-sm text-gray-600 hover:text-grap-600 hover:bg-gray-200 transition-all duration-200 text-decoration-none"
+                    className={`flex items-center p-1 rounded-sm transition-all duration-200 text-decoration-none ${
+                      isChildActive 
+                        ? 'text-blue-700 bg-blue-50 font-medium border-r-4 border-blue-500' 
+                        : 'text-gray-600 hover:text-gray-600 hover:bg-gray-200'
+                    }`}
                     onClick={closeMobileMenu}
                   >
-                    <ChildIconComponent className="w-4 h-4 mr-3 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm truncate">{child.title}</span>
+                    <ChildIconComponent className={`w-4 h-4 mr-3 flex-shrink-0 ${
+                      isChildActive ? 'text-blue-600' : ''
+                    }`} />
+                    <span className={`text-xs sm:text-sm truncate ${
+                      isChildActive ? 'font-medium' : ''
+                    }`}>
+                      {child.title}
+                    </span>
                   </Link>
                 );
               })}
@@ -128,14 +193,14 @@ const Sidebar = () => {
     <>
       {/* Mobile Menu Toggle Button */}
       <button
-        className="md:hidden fixed top-16 left-4 z-50 p-2 bg-white border border-gray-200 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
+        className="md:hidden fixed top-2 left-2 z-[999999999999999] text-white hover:bg-gray-50 transition-colors"
         onClick={toggleMobileMenu}
         aria-label="Toggle menu"
       >
         {isMobileMenuOpen ? (
-          <X className="w-5 h-5 text-gray-600" />
+          <X className="w-8 h-8 text-white" />
         ) : (
-          <Menu className="w-5 h-5 text-gray-600" />
+          <Menu  className="w-8 h-8 text-white" />
         )}
       </button>
 
@@ -157,7 +222,7 @@ const Sidebar = () => {
           ${/* Height */ ''}
           h-[calc(100vh-3.5rem)]
           ${/* Background and border */ ''}
-          bg-white md:bg-gray-100 border-r border-gray-200 
+          bg-white md:bg-gray-50 border-r border-gray-200 
           ${/* Shadow */ ''}
           shadow-lg md:shadow-none
           ${/* Visibility and transitions */ ''}
@@ -171,9 +236,9 @@ const Sidebar = () => {
         `}
       >
         {/* Header - Mobile only */}
-        <div className="md:hidden p-7 border-b border-gray-200 bg-gray-50">
+        {/* <div className="md:hidden p-7 border-b border-gray-200 bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-800"></h2>
-        </div>
+        </div> */}
 
         {/* Menu Items */}
         <div className="p-1 sm:p-2">

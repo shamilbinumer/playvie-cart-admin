@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 const ProductList = () => {
    const navigate = useNavigate();
+   
    const [brands] = useState([
       {
         id: 1,
@@ -61,24 +62,31 @@ const ProductList = () => {
       icon: Trash2
     }
   ];
+
+  
   return (
-    <div className=''>
-      <BreadCrumb
-        items={[
-          { label: "Product List", path: "#" },
-        ]}
-      />
-      <PageHeader
-        title="Product List"
-        // description="Configure your application preferences"
-        className="border-b border-gray-200 pb-4"
-        actionButton={<AddButton title="Create New" onClick={() => navigate('/add-product')} />}
-      />
-      <DataTable
-        columns={columns}
-        data={brands}
-        actions={actions}
-      />
+    <div className='relative'>
+    
+      
+      {/* Main content */}
+      <div className=''>
+        <BreadCrumb
+          items={[
+            { label: "Product List", path: "#" },
+          ]}
+        />
+        <PageHeader
+          title="Product List"
+          // description="Configure your application preferences"
+          className="border-b border-gray-200 pb-4"
+          actionButton={<AddButton title="Create New" onClick={() => navigate('/add-product')} />}
+        />
+        <DataTable
+          columns={columns}
+          data={brands}
+          actions={actions}
+        />
+      </div>
     </div>
   )
 }
