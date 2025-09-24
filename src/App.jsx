@@ -28,6 +28,7 @@ export default function App() {
             <Route path="/master/add-category" element={<CategoryForm />} />
             <Route path="/master/brand-list" element={<BrandList />} />
             <Route path="/master/add-brand" element={<BrandForm />} />
+            <Route path="/master/edit-brand/:brandId" element={<BrandForm />} />
             <Route path="/product-list" element={<ProductList />} />
             <Route path="/add-product" element={<ProductForm />} />
             <Route path="/users" element={<UsersList />} />

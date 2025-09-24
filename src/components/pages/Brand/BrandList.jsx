@@ -50,7 +50,7 @@ const BrandList = () => {
   ];
 
   const handleEdit = (brand) => {
-    console.log("Edit brand:", brand);
+    navigate(`/master/edit-brand/${brand.id}`);
   };
 
   const handleDelete = async (brand) => {

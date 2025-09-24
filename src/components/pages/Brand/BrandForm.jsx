@@ -1,13 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FormContainer from "../../layout/FormContainer";
 import TextInput from "../../layout/TextInput";
 import SingleImageUpload from "../../layout/SingleImageUpload";
 import BreadCrumb from "../../layout/BreadCrumb";
 import { db } from "../../../firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
 import Swal from "sweetalert2";
+import { useParams, useNavigate } from "react-router-dom";
+import Preloader from "../../common/Preloader";
 
 const BrandForm = () => {
+  const { brandId } = useParams();
+  const navigate = useNavigate();
+  const isEditMode = Boolean(brandId);
+
   const [formData, setFormData] = useState({
     brandName: "",
     brandLogo: null,
@@ -18,8 +24,53 @@ const BrandForm = () => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(isEditMode);
 
   const API_KEY = 'de98e3de28eb4beeec9706734178ec3a';
+
+  // Load existing brand data when in edit mode
+  useEffect(() => {
+    if (isEditMode && brandId) {
+      loadBrandData();
+    }
+  }, [isEditMode, brandId]);
+
+  const loadBrandData = async () => {
+    try {
+      setInitialLoading(true);
+      const brandDoc = await getDoc(doc(db, "brands", brandId));
+
+      if (brandDoc.exists()) {
+        const brandData = brandDoc.data();
+        setFormData({
+          brandName: brandData.brandName || "",
+          brandLogo: brandData.brandLogo || null, // Store URL for existing images
+          brandBanner: brandData.brandBanner || null, // Store URL for existing images
+          description: brandData.description || "",
+          isActive: brandData.isActive || false,
+        });
+      } else {
+        Swal.fire({
+          title: "Error!",
+          text: "Brand not found.",
+          icon: "error",
+          confirmButtonText: "OK",
+        }).then(() => {
+          navigate("/master/brand-list");
+        });
+      }
+    } catch (error) {
+      console.error("Error loading brand:", error);
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to load brand data.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setInitialLoading(false);
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -73,48 +124,87 @@ const BrandForm = () => {
     try {
       setLoading(true);
 
-      // Upload both images
-      const logoUrl = await uploadToImgBB(formData.brandLogo);
-      const bannerUrl = await uploadToImgBB(formData.brandBanner);
+      let logoUrl = formData.brandLogo;
+      let bannerUrl = formData.brandBanner;
 
-      // Save to Firestore
-      await addDoc(collection(db, "brands"), {
+      // Upload new images only if they are File objects (not URLs)
+      if (formData.brandLogo instanceof File) {
+        logoUrl = await uploadToImgBB(formData.brandLogo);
+      }
+
+      if (formData.brandBanner instanceof File) {
+        bannerUrl = await uploadToImgBB(formData.brandBanner);
+      }
+
+      const brandData = {
         brandName: formData.brandName,
         description: formData.description,
         brandLogo: logoUrl,
         brandBanner: bannerUrl,
         isActive: formData.isActive,
-        createdAt: new Date(),
-      });
+        updatedAt: new Date(),
+      };
 
-      Swal.fire({
-        title: "Success!",
-        text: "Your brand was added successfully.",
-        icon: "success",
-        showConfirmButton: false,
-        timer: 2000, // auto close after 2s
-        toast: true, // makes it appear like a toast
-       
-      });
-      setFormData({
-        brandName: "",
-        brandLogo: null,
-        brandBanner: null,
-        description: "",
-        isActive: false,
-      });
+      if (isEditMode) {
+        // Update existing brand
+        await updateDoc(doc(db, "brands", brandId), brandData);
+
+        Swal.fire({
+          title: "Success!",
+          text: "Brand updated successfully.",
+          icon: "success",
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
+        navigate("/master/brand-list");
+      } else {
+        // Create new brand
+        await addDoc(collection(db, "brands"), {
+          ...brandData,
+          createdAt: new Date(),
+        });
+
+        Swal.fire({
+          title: "Success!",
+          text: "Brand created successfully.",
+          icon: "success",
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
+
+        // Reset form for create mode
+        setFormData({
+          brandName: "",
+          brandLogo: null,
+          brandBanner: null,
+          description: "",
+          isActive: false,
+        });
+      }
     } catch (error) {
       console.error("Error saving brand:", error);
-       Swal.fire({
-      title: "Error!",
-      text: "Something went wrong.",
-      icon: "error",
-      confirmButtonText: "Retry",
-    });
+      Swal.fire({
+        title: "Error!",
+        text: "Something went wrong.",
+        icon: "error",
+        confirmButtonText: "Retry",
+      });
     } finally {
       setLoading(false);
     }
   };
+
+  const handleCancel = () => {
+    navigate("/master/brand-list");
+  };
+
+  if (initialLoading) {
+    return (
+      <div><Preloader /></div>
+    );
+  }
 
   return (
     <>
@@ -122,14 +212,14 @@ const BrandForm = () => {
         items={[
           { label: "Master Data", path: "#" },
           { label: "Brand List", path: "/master/brand-list" },
-          { label: "Add Brand", path: "#" },
+          { label: isEditMode ? "Edit Brand" : "Add Brand", path: "#" },
         ]}
       />
       <FormContainer
-        title="Add Brand"
-        onCancel={() => console.log("Cancelled")}
+        title={isEditMode ? "Edit Brand" : "Add Brand"}
+        onCancel={handleCancel}
         onSubmit={handleSubmit}
-        submitText={loading ? "Saving..." : "Create Brand"}
+        submitText={loading ? "Saving..." : (isEditMode ? "Update Brand" : "Create Brand")}
       >
         {/* Brand Name */}
         <TextInput
@@ -153,6 +243,7 @@ const BrandForm = () => {
               onImageRemove={() => handleInputChange("brandLogo", null)}
               error={errors.brandLogo}
               required
+              existingImageUrl={typeof formData.brandLogo === 'string' ? formData.brandLogo : null}
             />
           </div>
 
@@ -167,6 +258,7 @@ const BrandForm = () => {
               onImageRemove={() => handleInputChange("brandBanner", null)}
               error={errors.brandBanner}
               required
+              existingImageUrl={typeof formData.brandBanner === 'string' ? formData.brandBanner : null}
             />
           </div>
         </div>
