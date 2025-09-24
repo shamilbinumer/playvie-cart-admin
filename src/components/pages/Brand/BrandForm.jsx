@@ -27,7 +27,6 @@ const BrandForm = () => {
   const [initialLoading, setInitialLoading] = useState(isEditMode);
 
   const API_KEY = 'de98e3de28eb4beeec9706734178ec3a';
-
   // Load existing brand data when in edit mode
   useEffect(() => {
     if (isEditMode && brandId) {
