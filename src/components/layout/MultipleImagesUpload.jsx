@@ -195,10 +195,10 @@ const MultipleImageUpload = ({
       {/* Preview Grid */}
       {images.length > 0 && (
         <div className="mt-3">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+          <div className="flex gap-2">
             {images.map((image) => (
               <div key={image.id} className="relative group">
-                <div className="aspect-square rounded-md overflow-hidden bg-gray-100 border">
+                <div className="aspect-square w-20 h-20 rounded-md overflow-hidden bg-gray-100 border">
                   {loadingIds.includes(image.id) ? (
                     <div className="flex items-center justify-center h-full">
                       <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
@@ -237,7 +237,7 @@ const MultipleImageUpload = ({
                 className="aspect-square rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition"
                 onClick={handleClick}
               >
-                <Plus className="w-5 h-5 text-gray-400" />
+                <Plus className="w-20 h-5 text-gray-400" />
               </div>
             )}
           </div>

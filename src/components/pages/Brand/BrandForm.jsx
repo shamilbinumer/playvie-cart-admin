@@ -112,6 +112,10 @@ const BrandForm = () => {
           multiline
           rows={4}
         />
+        <div className="flex items-center space-x-2">
+          <input type="checkbox" id="isActive" />
+          <label htmlFor="isActive">Is Active</label>
+        </div>
       </FormContainer>
     </>
   );

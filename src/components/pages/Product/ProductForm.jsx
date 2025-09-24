@@ -148,7 +148,7 @@ const ProductForm = () => {
         </div>
 
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* MRP */}
           <TextInput
             label="MRP"
@@ -174,10 +174,7 @@ const ProductForm = () => {
             min="0"
             step="0.01"
           />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Category Dropdown */}
+            {/* Category Dropdown */}
           <SearchableDropdown
             label="Category"
             options={categories}
@@ -199,7 +196,7 @@ const ProductForm = () => {
             required
           />
         </div>
-
+     
         {/* Product Images */}
         <div>
           <MultipleImageUpload
@@ -215,6 +212,10 @@ const ProductForm = () => {
           {errors.productImages && (
             <p className="mt-1 text-sm text-red-600">{errors.productImages}</p>
           )}
+        </div>
+        <div className="flex items-center space-x-2">
+          <input type="checkbox" id="isActive" />
+          <label htmlFor="isActive">Is Active</label>
         </div>
       </FormContainer>
     </>

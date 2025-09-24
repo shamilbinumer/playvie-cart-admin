@@ -1,5 +1,4 @@
-// components/layout/Sidebar.js
-import React, { useState, useEffect } from "react";
+import  { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronDown, Menu, X } from "lucide-react";
 import { menuData } from "../../utils/menuData";
@@ -236,9 +235,6 @@ const Sidebar = () => {
         `}
       >
         {/* Header - Mobile only */}
-        {/* <div className="md:hidden p-7 border-b border-gray-200 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-800"></h2>
-        </div> */}
 
         {/* Menu Items */}
         <div className="p-1 sm:p-2">
