@@ -10,6 +10,7 @@ import BrandList from "./components/pages/Brand/BrandList";
 import BrandForm from "./components/pages/Brand/BrandForm";
 import ProductList from "./components/pages/Product/ProductList";
 import ProductForm from "./components/pages/Product/ProductForm";
+import UsersList from "./components/pages/UsersList";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/master/add-brand" element={<BrandForm />} />
             <Route path="/product-list" element={<ProductList />} />
             <Route path="/add-product" element={<ProductForm />} />
+            <Route path="/users" element={<UsersList />} />
 
 
             <Route path="*" element={<NotFound />} />

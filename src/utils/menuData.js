@@ -42,6 +42,13 @@ export const menuData = [
     url: "/product-list",
     children: []
   },
+  {
+    id: 4,
+    title: "Users",
+    icon: Box,
+    url: "/users",
+    children: []
+  },
 
 
 ];
