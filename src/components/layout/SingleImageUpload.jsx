@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, AlertCircle, Loader2 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 
@@ -10,13 +10,29 @@ const SingleImageUpload = ({
   acceptedTypes = ['image/jpeg', 'image/png', 'image/webp'],
   className = '',
   placeholder = 'Click to upload or drag and drop an image here',
-  required = false
+  required = false,
+  defaultImage
 }) => {
   const [image, setImage] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Reset image state if defaultImage changes
+useEffect(() => {
+  if (!image && defaultImage) {
+    setImage({
+      id: 'default',
+      file: null,
+      preview: defaultImage,
+      name: 'Existing Image',
+      size: 0,
+      isDefault: true
+    });
+  }
+}, [defaultImage]);
+
 
   const validateFile = (file) => {
     if (!acceptedTypes.includes(file.type)) {
@@ -27,7 +43,7 @@ const SingleImageUpload = ({
 
   const processFile = async (file) => {
     setError('');
-    setLoading(true); // start loader
+    setLoading(true);
 
     const validationError = validateFile(file);
     if (validationError) {
@@ -42,7 +58,7 @@ const SingleImageUpload = ({
     if (file.size > maxSizeKB * 1024) {
       try {
         const options = {
-          maxSizeMB: maxSizeKB / 1024, // 0.1 MB for 100KB
+          maxSizeMB: maxSizeKB / 1024,
           maxWidthOrHeight: 1024,
           useWebWorker: true,
         };
@@ -54,24 +70,26 @@ const SingleImageUpload = ({
       }
     }
 
-    // Clean old preview
-    if (image) URL.revokeObjectURL(image.preview);
+    // Clean old preview if not default
+    if (image && !image.isDefault) URL.revokeObjectURL(image.preview);
 
-    const newImage = {
-      id: Date.now(),
-      file: finalFile,
-      preview: URL.createObjectURL(finalFile),
-      name: finalFile.name,
-      size: finalFile.size,
-    };
+   const newImage = {
+  id: Date.now(),
+  file: finalFile,
+  preview: URL.createObjectURL(finalFile),
+  name: finalFile.name,
+  size: finalFile.size,
+  isDefault: false
+};
+
 
     setImage(newImage);
     onImageSelect(finalFile);
-    setLoading(false); // stop loader
+    setLoading(false);
   };
 
   const removeImage = () => {
-    if (image) URL.revokeObjectURL(image.preview);
+    if (image && !image.isDefault) URL.revokeObjectURL(image.preview);
     setImage(null);
     onImageRemove();
     setError('');
@@ -114,7 +132,6 @@ const SingleImageUpload = ({
           className="hidden"
         />
 
-        {/* Loader or Upload Icon */}
         <div className="flex flex-col items-center space-y-1">
           {loading ? (
             <Loader2 className="w-8 h-8 text-[#81184e] animate-spin" />
@@ -132,7 +149,6 @@ const SingleImageUpload = ({
         </div>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="mt-2 flex items-center space-x-2 text-red-600 text-sm">
           <AlertCircle className="w-4 h-4" />
@@ -140,7 +156,6 @@ const SingleImageUpload = ({
         </div>
       )}
 
-      {/* Image Preview */}
       {image && !loading && (
         <div className="mt-3">
           <h4 className="text-sm font-medium text-gray-700 mb-1">Selected Image</h4>
@@ -156,10 +171,12 @@ const SingleImageUpload = ({
               <X className="w-3 h-3" />
             </button>
           </div>
-          <div className="mt-1 text-xs text-gray-500">
-            <p className="font-medium">{image.name}</p>
-            <p>{(image.size / 1024).toFixed(1)} KB</p>
-          </div>
+          {!image.isDefault && (
+            <div className="mt-1 text-xs text-gray-500">
+              <p className="font-medium">{image.name}</p>
+              <p>{(image.size / 1024).toFixed(1)} KB</p>
+            </div>
+          )}
         </div>
       )}
     </div>

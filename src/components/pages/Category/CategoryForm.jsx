@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FormContainer from "../../layout/FormContainer";
 import ColorPickerInput from "../../layout/ColorPickerInput";
 import TextInput from "../../layout/TextInput";
 import SingleImageUpload from "../../layout/SingleImageUpload";
 import BreadCrumb from "../../layout/BreadCrumb";
 import { db } from "../../../firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import Preloader from "../../common/Preloader";
 
 const CategoryForm = () => {
   const [formData, setFormData] = useState({
@@ -16,14 +17,54 @@ const CategoryForm = () => {
     thumbnailImage: null,
     backgroundColor: "#3498db",
     priority: "",
-    isActive: false,
+    isActive: true,
   });
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const[fetchLoading,setFetchLoading]=useState(false);
 
-  const API_KEY = "de98e3de28eb4beeec9706734178ec3a"; // move to .env in production
-  const navigate=useNavigate();
+  const { categoryId } = useParams();
+  const isEditMode = Boolean(categoryId);
+
+  const API_KEY = "YOUR_IMGBB_API_KEY"; // move to .env
+  const navigate = useNavigate();
+
+  // Load existing category if edit mode
+  useEffect(() => {
+    const fetchCategory = async () => {
+      if (isEditMode) {
+        try {
+          setFetchLoading(true);
+          const docRef = doc(db, "categories", categoryId);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            console.log(data);
+            
+            setFormData({
+              categoryName: data.categoryName || "",
+              bannerImage: data.bannerImage || null,
+              thumbnailImage: data.thumbnailImage || null,
+              backgroundColor: data.backgroundColor || "#3498db",
+              priority: data.priority || "",
+              isActive: data.isActive ?? true,
+            });
+          } else {
+            Swal.fire("Error", "Category not found", "error");
+            navigate("/master/category-list");
+          }
+        } catch (err) {
+          console.error("Error fetching category:", err);
+        } finally {
+          setFetchLoading(false);
+        }
+      }
+    };
+    fetchCategory();
+  }, [isEditMode, categoryId, navigate]);
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -46,26 +87,25 @@ const CategoryForm = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.categoryName.trim()) {
-      newErrors.categoryName = "Category name is required";
-    }
-    if (!formData.priority.trim()) {
-      newErrors.priority = "Priority is required";
-    }
-    if (!formData.bannerImage) {
-      newErrors.bannerImage = "Banner image is required";
-    }
-    if (!formData.thumbnailImage) {
-      newErrors.thumbnailImage = "Thumbnail image is required";
-    }
+    if (!formData.categoryName.trim()) newErrors.categoryName = "Category name is required";
+    if (!formData.priority.trim()) newErrors.priority = "Priority is required";
+    if (!formData.bannerImage) newErrors.bannerImage = "Banner image is required";
+    if (!formData.thumbnailImage) newErrors.thumbnailImage = "Thumbnail image is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const uploadToImgBB = async (file) => {
+  // Upload image to imgbb (only if it's a File, not a URL)
+  const uploadToImgBB = async (fileOrUrl) => {
+  if (!fileOrUrl) return null;
+
+  // If it's already a URL (string), just return it
+  if (typeof fileOrUrl === "string") return fileOrUrl;
+
+  try {
     const fd = new FormData();
-    fd.append("image", file);
+    fd.append("image", fileOrUrl);
 
     const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
       method: "POST",
@@ -73,8 +113,19 @@ const CategoryForm = () => {
     });
 
     const data = await res.json();
-    return data.data.url;
-  };
+
+    if (data && data.data && data.data.url) {
+      return data.data.url;
+    } else {
+      console.error("ImgBB upload failed:", data);
+      return null; // fallback
+    }
+  } catch (err) {
+    console.error("Error uploading to Imgbb:", err);
+    return null;
+  }
+};
+
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
@@ -82,52 +133,48 @@ const CategoryForm = () => {
     try {
       setLoading(true);
 
-      // Upload images to ImgBB
       const bannerUrl = await uploadToImgBB(formData.bannerImage);
       const thumbnailUrl = await uploadToImgBB(formData.thumbnailImage);
 
-      // Save to Firestore
-      await addDoc(collection(db, "categories"), {
-        categoryName: formData.categoryName,
-        bannerImage: bannerUrl,
-        thumbnailImage: thumbnailUrl,
-        backgroundColor: formData.backgroundColor,
-        priority: formData.priority,
-        isActive: formData.isActive,
-        createdAt: new Date(),
-      });
+      if (isEditMode) {
+        const docRef = doc(db, "categories", categoryId);
+        await updateDoc(docRef, {
+          categoryName: formData.categoryName,
+          bannerImage: bannerUrl,
+          thumbnailImage: thumbnailUrl,
+          backgroundColor: formData.backgroundColor,
+          priority: formData.priority,
+          isActive: formData.isActive,
+          updatedAt: new Date(),
+        });
+        Swal.fire("Success!", "Category updated successfully.", "success");
+      } else {
+        const docRef = doc(collection(db, "categories"));
+        await setDoc(docRef, {
+          id: docRef.id,
+          categoryName: formData.categoryName,
+          bannerImage: bannerUrl,
+          thumbnailImage: thumbnailUrl,
+          backgroundColor: formData.backgroundColor,
+          priority: formData.priority,
+          isActive: formData.isActive,
+          createdAt: new Date(),
+        });
+        Swal.fire("Success!", "Category added successfully.", "success");
+      }
 
-      Swal.fire({
-        title: "Success!",
-        text: "Category added successfully.",
-        icon: "success",
-        showConfirmButton: false,
-        timer: 2000,
-        toast: true,
-      });
-
-      // Reset form
-      setFormData({
-        categoryName: "",
-        bannerImage: null,
-        thumbnailImage: null,
-        backgroundColor: "#3498db",
-        priority: "",
-        isActive: false,
-      });
       navigate("/master/category-list");
     } catch (error) {
       console.error("Error saving category:", error);
-      Swal.fire({
-        title: "Error!",
-        text: "Something went wrong.",
-        icon: "error",
-        confirmButtonText: "Retry",
-      });
+      Swal.fire("Error!", "Something went wrong.", "error");
     } finally {
       setLoading(false);
     }
   };
+
+  if(fetchLoading){
+    return <Preloader/>
+  }
 
   return (
     <>
@@ -135,16 +182,16 @@ const CategoryForm = () => {
         items={[
           { label: "Master Data", path: "#" },
           { label: "Category List", path: "/master/category-list" },
-          { label: "Add Category", path: "#" },
+          { label: isEditMode ? "Edit Category" : "Add Category", path: "#" },
         ]}
       />
+
       <FormContainer
-        title="Add Category"
-        onCancel={() => console.log("Cancelled")}
+        title={isEditMode ? "Edit Category" : "Add Category"}
+        onCancel={() => navigate("/master/category-list")}
         onSubmit={handleSubmit}
-        submitText={loading ? "Saving..." : "Create Category"}
+        submitText={loading ? "Saving..." : isEditMode ? "Update Category" : "Create Category"}
       >
-        {/* Category Name */}
         <TextInput
           label="Category Name"
           placeholder="Enter category name"
@@ -155,69 +202,59 @@ const CategoryForm = () => {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Banner Image Upload */}
-          <div>
-            <SingleImageUpload
-              label="Banner Image"
-              placeholder="Upload banner image"
-              maxSizeMB={5}
-              acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-              onImageSelect={(file) => handleInputChange("bannerImage", file)}
-              onImageRemove={() => handleInputChange("bannerImage", null)}
-              error={errors.bannerImage}
-              required
-            />
-          </div>
+          <SingleImageUpload
+            label="Banner Image"
+            placeholder="Upload banner image"
+            maxSizeMB={5}
+            acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+            onImageSelect={(file) => handleInputChange("bannerImage", file)}
+            onImageRemove={() => handleInputChange("bannerImage", null)}
+            error={errors.bannerImage}
+            required
+            defaultImage={formData.bannerImage}
+          />
 
-          {/* Thumbnail Image Upload */}
-          <div>
-            <SingleImageUpload
-              label="Thumbnail Image"
-              placeholder="Upload thumbnail image"
-              maxSizeMB={3}
-              acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-              onImageSelect={(file) => handleInputChange("thumbnailImage", file)}
-              onImageRemove={() => handleInputChange("thumbnailImage", null)}
-              error={errors.thumbnailImage}
-              required
-            />
-          </div>
+          <SingleImageUpload
+            label="Thumbnail Image"
+            placeholder="Upload thumbnail image"
+            maxSizeMB={3}
+            acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+            onImageSelect={(file) => handleInputChange("thumbnailImage", file)}
+            onImageRemove={() => handleInputChange("thumbnailImage", null)}
+            error={errors.thumbnailImage}
+            required
+            defaultImage={formData.thumbnailImage}
+          />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Background Color */}
-          <div>
-            <ColorPickerInput
-              id="background-color"
-              name="backgroundColor"
-              label="Background Color"
-              value={formData.backgroundColor}
-              onChange={(color) => handleInputChange("backgroundColor", color)}
-              showHex
-              rounded
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <ColorPickerInput
+            id="background-color"
+            name="backgroundColor"
+            label="Background Color"
+            value={formData.backgroundColor}
+            onChange={(color) => handleInputChange("backgroundColor", color)}
+            showHex
+            rounded
+          />
 
-          {/* Priority */}
-          <div>
-            <TextInput
-              label="Priority"
-              placeholder="Enter priority (numbers only)"
-              value={formData.priority}
-              onChange={handlePriorityChange}
-              error={errors.priority}
-              required
-              type="text"
-            />
-          </div>
+          <TextInput
+            label="Priority"
+            placeholder="Enter priority (numbers only)"
+            value={formData.priority}
+            onChange={handlePriorityChange}
+            error={errors.priority}
+            required
+            type="text"
+          />
 
-          {/* Is Active Checkbox */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 mt-4">
             <input
               type="checkbox"
               id="isActive"
               checked={formData.isActive}
               onChange={(e) => handleInputChange("isActive", e.target.checked)}
+              className="accent-[#81184e]"
             />
             <label htmlFor="isActive">Is Active</label>
           </div>
