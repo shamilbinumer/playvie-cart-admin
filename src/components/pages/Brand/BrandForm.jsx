@@ -4,7 +4,7 @@ import TextInput from "../../layout/TextInput";
 import SingleImageUpload from "../../layout/SingleImageUpload";
 import BreadCrumb from "../../layout/BreadCrumb";
 import { db } from "../../../firebase";
-import { collection, addDoc, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import Swal from "sweetalert2";
 import { useParams, useNavigate } from "react-router-dom";
 import Preloader from "../../common/Preloader";
@@ -19,7 +19,8 @@ const BrandForm = () => {
     brandLogo: null,
     brandBanner: null,
     description: "",
-    isActive: false,
+    priority: "", // New priority field
+    isActive: true,
   });
 
   const [errors, setErrors] = useState({});
@@ -27,6 +28,7 @@ const BrandForm = () => {
   const [initialLoading, setInitialLoading] = useState(isEditMode);
 
   const API_KEY = 'de98e3de28eb4beeec9706734178ec3a';
+  
   // Load existing brand data when in edit mode
   useEffect(() => {
     if (isEditMode && brandId) {
@@ -46,6 +48,7 @@ const BrandForm = () => {
           brandLogo: brandData.brandLogo || null, // Store URL for existing images
           brandBanner: brandData.brandBanner || null, // Store URL for existing images
           description: brandData.description || "",
+          priority: brandData.priority || "", // Load priority value
           isActive: brandData.isActive || false,
         });
       } else {
@@ -87,34 +90,93 @@ const BrandForm = () => {
 
   const validateForm = () => {
     const newErrors = {};
+    
     if (!formData.brandName.trim()) {
       newErrors.brandName = "Brand name is required";
     }
+    
     if (!formData.description.trim()) {
       newErrors.description = "Description is required";
     }
+    
+    // Priority validation
+    if (!formData.priority || formData.priority === "") {
+      newErrors.priority = "Priority is required";
+    } else {
+      const priorityNum = parseInt(formData.priority);
+      if (isNaN(priorityNum) || priorityNum < 0) {
+        newErrors.priority = "Priority must be a valid non-negative number";
+      }
+    }
+    
+    // For logo validation - check if it's a File, Blob, or valid URL string
     if (!formData.brandLogo) {
       newErrors.brandLogo = "Brand logo is required";
+    } else if (typeof formData.brandLogo === 'string' && formData.brandLogo.trim() === '') {
+      newErrors.brandLogo = "Brand logo is required";
     }
+    
+    // For banner validation - check if it's a File, Blob, or valid URL string
     if (!formData.brandBanner) {
       newErrors.brandBanner = "Brand banner is required";
+    } else if (typeof formData.brandBanner === 'string' && formData.brandBanner.trim() === '') {
+      newErrors.brandBanner = "Brand banner is required";
     }
+
+    console.log("Validation results:", {
+      formData: {
+        brandName: formData.brandName,
+        description: formData.description,
+        priority: formData.priority,
+        brandLogo: formData.brandLogo,
+        brandBanner: formData.brandBanner,
+        logoType: typeof formData.brandLogo,
+        bannerType: typeof formData.brandBanner,
+        logoIsFile: formData.brandLogo instanceof File,
+        bannerIsFile: formData.brandBanner instanceof File,
+        logoIsBlob: formData.brandLogo instanceof Blob,
+        bannerIsBlob: formData.brandBanner instanceof Blob
+      },
+      errors: newErrors
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const uploadToImgBB = async (file) => {
+    if (!file) {
+      throw new Error("No file provided for upload");
+    }
+
     const formData = new FormData();
     formData.append("image", file);
 
-    const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
-    return data.data.url;
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      
+      if (!data.success) {
+        throw new Error(data.error?.message || "Image upload failed");
+      }
+
+      if (!data.data?.url) {
+        throw new Error("No URL returned from image upload service");
+      }
+
+      return data.data.url;
+    } catch (error) {
+      console.error("ImgBB upload error:", error);
+      throw new Error(`Image upload failed: ${error.message}`);
+    }
   };
 
   const handleSubmit = async () => {
@@ -125,28 +187,56 @@ const BrandForm = () => {
 
       let logoUrl = formData.brandLogo;
       let bannerUrl = formData.brandBanner;
-
-      // Upload new images only if they are File objects (not URLs)
-      if (formData.brandLogo instanceof File) {
-        logoUrl = await uploadToImgBB(formData.brandLogo);
+      // Upload new images if they are File or Blob objects (not URLs)
+      if (formData.brandLogo instanceof File || formData.brandLogo instanceof Blob) {
+        try {
+          logoUrl = await uploadToImgBB(formData.brandLogo);
+          console.log("Uploaded logo URL:", logoUrl);
+        } catch (error) {
+          console.error("Error uploading logo:", error);
+          throw new Error("Failed to upload brand logo: " + error.message);
+        }
       }
 
-      if (formData.brandBanner instanceof File) {
-        bannerUrl = await uploadToImgBB(formData.brandBanner);
+      if (formData.brandBanner instanceof File || formData.brandBanner instanceof Blob) {
+        try {
+          bannerUrl = await uploadToImgBB(formData.brandBanner);
+          console.log("Uploaded banner URL:", bannerUrl);
+        } catch (error) {
+          console.error("Error uploading banner:", error);
+          throw new Error("Failed to upload brand banner: " + error.message);
+        }
+      }
+
+      console.log("Final URLs before validation:", { logoUrl, bannerUrl });
+
+      // Ensure we have valid URLs before saving
+      if (!logoUrl || typeof logoUrl !== 'string' || logoUrl.trim() === '') {
+        console.error("Invalid logo URL:", logoUrl, typeof logoUrl);
+        throw new Error(`Invalid brand logo URL: ${logoUrl}`);
+      }
+
+      if (!bannerUrl || typeof bannerUrl !== 'string' || bannerUrl.trim() === '') {
+        console.error("Invalid banner URL:", bannerUrl, typeof bannerUrl);
+        throw new Error(`Invalid brand banner URL: ${bannerUrl}`);
       }
 
       const brandData = {
-        brandName: formData.brandName,
-        description: formData.description,
-        brandLogo: logoUrl,
-        brandBanner: bannerUrl,
+        brandName: formData.brandName.trim(),
+        description: formData.description.trim(),
+        priority: parseInt(formData.priority), // Convert to number
+        brandLogo: logoUrl, // This should always be a string URL
+        brandBanner: bannerUrl, // This should always be a string URL
         isActive: formData.isActive,
         updatedAt: new Date(),
       };
 
       if (isEditMode) {
-        // Update existing brand
-        await updateDoc(doc(db, "brands", brandId), brandData);
+        // Update existing brand - include the document ID
+        await updateDoc(doc(db, "brands", brandId), {
+          ...brandData,
+          id: brandId, // Store the document ID in the document itself
+        });
 
         Swal.fire({
           title: "Success!",
@@ -158,9 +248,14 @@ const BrandForm = () => {
         });
         navigate("/master/brand-list");
       } else {
-        // Create new brand
-        await addDoc(collection(db, "brands"), {
+
+       
+        const docRef= await doc(collection(db, "brands"))
+
+        // Update the document to include its own ID
+        await setDoc(docRef, {
           ...brandData,
+          id: docRef.id, 
           createdAt: new Date(),
         });
 
@@ -179,6 +274,7 @@ const BrandForm = () => {
           brandLogo: null,
           brandBanner: null,
           description: "",
+          priority: "", // Reset priority field
           isActive: false,
         });
       }
@@ -186,7 +282,7 @@ const BrandForm = () => {
       console.error("Error saving brand:", error);
       Swal.fire({
         title: "Error!",
-        text: "Something went wrong.",
+        text: error.message || "Failed to save brand",
         icon: "error",
         confirmButtonText: "Retry",
       });
@@ -230,6 +326,8 @@ const BrandForm = () => {
           required
         />
 
+      
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Brand Logo */}
           <div>
@@ -262,7 +360,8 @@ const BrandForm = () => {
           </div>
         </div>
 
-        {/* Description */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Description */}
         <TextInput
           label="Description"
           placeholder="Enter brand description"
@@ -273,6 +372,19 @@ const BrandForm = () => {
           multiline
           rows={4}
         />
+          {/* Priority Field */}
+        <TextInput
+          label="Priority"
+          placeholder="Enter priority (e.g., 1, 2, 3...)"
+          type="number"
+          value={formData.priority}
+          onChange={(value) => handleInputChange("priority", value)}
+          error={errors.priority}
+          required
+          min="0"
+          step="1"
+        />
+      </div>
 
         {/* Is Active Checkbox */}
         <div className="flex items-center space-x-2">
@@ -281,6 +393,7 @@ const BrandForm = () => {
             id="isActive"
             checked={formData.isActive}
             onChange={(e) => handleInputChange("isActive", e.target.checked)}
+            className="accent-[#81184e]"
           />
           <label htmlFor="isActive">Is Active</label>
         </div>

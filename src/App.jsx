@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/common/Navbar";
 import Dashboard from "./components/pages/Dashboard";
@@ -11,16 +11,21 @@ import BrandForm from "./components/pages/Brand/BrandForm";
 import ProductList from "./components/pages/Product/ProductList";
 import ProductForm from "./components/pages/Product/ProductForm";
 import UsersList from "./components/pages/UsersList";
+import Signup from "./components/pages/Signup"; // Your signup page component
 
-export default function App() {
+function AppContent() {
+  const location = useLocation();
+  const hideLayoutRoutes = ["/signup"]; // Add more paths here if needed
+  const shouldHideLayout = hideLayoutRoutes.includes(location.pathname);
+
   return (
-    <Router>
-      <Navbar />
+    <>
+      {!shouldHideLayout && <Navbar />}
 
       <div style={{ display: "flex", minHeight: "100vh" }}>
-        <Sidebar />
+        {!shouldHideLayout && <Sidebar />}
 
-        <div style={{ flex: 1 }} className="pt-16">
+        <div style={{ flex: 1 }} className={!shouldHideLayout ? "pt-16" : ""}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -32,12 +37,20 @@ export default function App() {
             <Route path="/product-list" element={<ProductList />} />
             <Route path="/add-product" element={<ProductForm />} />
             <Route path="/users" element={<UsersList />} />
-
+            <Route path="/signup" element={<Signup />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
       </div>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }
