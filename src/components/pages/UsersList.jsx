@@ -1,14 +1,15 @@
 import React, { useState } from 'react'
 import BreadCrumb from '../layout/BreadCrumb'
 import { useNavigate } from 'react-router-dom';
-import { SquarePen, Trash2 } from 'lucide-react';
 import DataTable from '../layout/DataTable';
+import { PageHeader } from '../common/PageHeader';
+import { Switch } from '@mui/material';
 
 const UsersList = () => {
   const navigate = useNavigate();
 
   // ✅ Replace brands with users
-  const [users] = useState([
+  const [users, setUsers] = useState([
     {
       id: 1,
       name: "Nabeel",
@@ -43,27 +44,27 @@ const UsersList = () => {
     }
   ]);
 
-  // ✅ Update columns for users
+  // ✅ Update columns - removed actions, changed role to active/inactive toggle
   const columns = [
     { key: "index", title: "#" },
     { key: "name", title: "Name" },
     { key: "email", title: "Email" },
-    { key: "role", title: "Role" },
-    { key: "status", title: "Status" },
     { key: "avatar", title: "Avatar" },
-    { key: "actions", title: "Actions" }
+    { key: "status", title: "Active/Inactive" }
   ];
 
-  const handleEdit = (user) => {
-    console.log("Edit user:", user);
-    // navigate(`/users/edit/${user.id}`);
+  // Handle toggle status
+  const handleStatusToggle = (userId) => {
+    setUsers(prevUsers => 
+      prevUsers.map(user => 
+        user.id === userId 
+          ? { ...user, status: !user.status }
+          : user
+      )
+    );
   };
 
-  const handleDelete = (user) => {
-    console.log("Delete user:", user);
-    // API call to delete user
-  };
-const renderCell = (item, column, index) => {
+  const renderCell = (item, column, index) => {
     if (column.key === "index") return index + 1;
 
     if (column.key === "avatar") {
@@ -85,69 +86,43 @@ const renderCell = (item, column, index) => {
 
     if (column.key === "status") {
       return (
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${item[column.key] === true
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
-            }`}
-        >
-          {item[column.key] ? "Active" : "Inactive"}
-        </span>
-      );
-    }
-
-    if (column.key === "actions" && actions) {
-      return (
-        <div className="flex space-x-2">
-          {actions.map((action, i) => (
-            <button
-              key={i}
-              onClick={() => action.handler(item)}
-              className={`flex items-center justify-center rounded transition-colors ${action.label === "Edit" ? "text-green-600" : ""
-                } ${action.label === "Delete" ? "text-red-600" : ""}`}
-            >
-              {action.icon && (
-                <span className="mr-1">
-                  <action.icon width={20} />
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <Switch
+          checked={item.status}
+          onChange={() => handleStatusToggle(item.id)}
+          size="small"
+          sx={{
+            '& .MuiSwitch-switchBase.Mui-checked': {
+              color: '#81184e',
+            },
+            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+              backgroundColor: '#81184e',
+            },
+          }}
+        />
       );
     }
 
     return item[column.key] || "-";
   };
-  // ✅ Action configuration
-  const actions = [
-    {
-      label: "Edit",
-      handler: handleEdit,
-      icon: SquarePen
-    },
-    {
-      label: "Delete",
-      handler: handleDelete,
-      icon: Trash2
-    }
-  ];
+
   return (
-    
     <div>
       <BreadCrumb
-          items={[
-            { label: "Users List", path: "#" },
-          ]}
-        />
-         <DataTable
-          columns={columns}
-          data={users}
-          actions={actions}
-          renderCell={renderCell}
-        />
+        items={[
+          { label: "Users List", path: "#" },
+        ]}
+      />
+      <PageHeader
+        title="Users List"
+        // description="Configure your application preferences"
+        className="border-b border-gray-200 pb-4"
+      />
+      <DataTable
+        columns={columns}
+        data={users}
+        renderCell={renderCell}
+      />
     </div>
-    
   )
 }
 
