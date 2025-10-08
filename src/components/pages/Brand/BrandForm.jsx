@@ -208,7 +208,7 @@ const BrandForm = () => {
         }
       }
 
-      console.log("Final URLs before validation:", { logoUrl, bannerUrl });
+      // console.log("Final URLs before validation:", { logoUrl, bannerUrl });
 
       // Ensure we have valid URLs before saving
       if (!logoUrl || typeof logoUrl !== 'string' || logoUrl.trim() === '') {

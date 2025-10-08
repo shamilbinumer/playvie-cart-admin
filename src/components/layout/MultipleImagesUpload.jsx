@@ -223,11 +223,7 @@ const MultipleImageUpload = ({
                   </button>
                 )}
 
-                {/* Info */}
-                <div className="mt-1 text-[11px] text-gray-500 truncate">
-                  <p title={image.name}>{image.name}</p>
-                  <p>{formatFileSize(image.size)}</p>
-                </div>
+              
               </div>
             ))}
 

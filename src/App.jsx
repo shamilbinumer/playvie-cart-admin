@@ -1,8 +1,14 @@
-import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  HashRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/common/Navbar";
 import Dashboard from "./components/pages/Dashboard";
-import Sidebar from "./components/layout/Sidebar";
+import Sidebar from "./components/common/Sidebar";
 import NotFound from "./components/pages/NotFound";
 import CategoryList from "./components/pages/Category/CategoryList";
 import CategoryForm from "./components/pages/Category/CategoryForm";
@@ -11,34 +17,141 @@ import BrandForm from "./components/pages/Brand/BrandForm";
 import ProductList from "./components/pages/Product/ProductList";
 import ProductForm from "./components/pages/Product/ProductForm";
 import UsersList from "./components/pages/UsersList";
+import AdminRegisterPage from "./components/pages/SIgnup";
+import Login from "./components/pages/Login";
+import ProtectedRoute from "./components/common/ProtectedRoute";
 
-export default function App() {
+function AppLayout() {
+  const location = useLocation();
+
+  // Routes that don't use Navbar/Sidebar
+  const noLayoutRoutes = ["/create-new-admin", "/login"];
+  const isNoLayout = noLayoutRoutes.includes(location.pathname);
+
+
+
   return (
-    <Router>
-      <Navbar />
-
+    <>
+      {!isNoLayout && <Navbar />}
       <div style={{ display: "flex", minHeight: "100vh" }}>
-        <Sidebar />
-
-        <div style={{ flex: 1 }} className="pt-16">
+        {!isNoLayout && <Sidebar />}
+        <div style={{ flex: 1 }} className={!isNoLayout ? "pt-16" : ""}>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/master/category-list" element={<CategoryList />} />
-            <Route path="/master/add-category" element={<CategoryForm />} />
-            <Route path="/master/edit-category/:categoryId" element={<CategoryForm />} />
-            <Route path="/master/brand-list" element={<BrandList />} />
-            <Route path="/master/add-brand" element={<BrandForm />} />
-            <Route path="/master/edit-brand/:brandId" element={<BrandForm />} />
-            <Route path="/product-list" element={<ProductList />} />
-            <Route path="/add-product" element={<ProductForm />} />
-            <Route path="/users" element={<UsersList />} />
+            {/* Public Routes */}
+            <Route path="/create-new-admin" element={<AdminRegisterPage />} />
+            <Route path="/login" element={<Login />} />
 
+            {/* Protected Routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Navigate to="/dashboard" replace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/master/category-list"
+              element={
+                <ProtectedRoute>
+                  <CategoryList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/master/add-category"
+              element={
+                <ProtectedRoute>
+                  <CategoryForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/master/edit-category/:categoryId"
+              element={
+                <ProtectedRoute>
+                  <CategoryForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/master/brand-list"
+              element={
+                <ProtectedRoute>
+                  <BrandList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/master/add-brand"
+              element={
+                <ProtectedRoute>
+                  <BrandForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/master/edit-brand/:brandId"
+              element={
+                <ProtectedRoute>
+                  <BrandForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/product-list"
+              element={
+                <ProtectedRoute>
+                  <ProductList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/add-product"
+              element={
+                <ProtectedRoute>
+                  <ProductForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/edit-product/:productId"
+              element={
+                <ProtectedRoute>
+                  <ProductForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <UsersList />
+                </ProtectedRoute>
+              }
+            />
 
+            {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
       </div>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <AppLayout />
     </Router>
   );
 }

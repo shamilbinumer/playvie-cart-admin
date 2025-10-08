@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Search, User, X } from "lucide-react";
 import SearchBar from "../layout/SearchBar";
+import { useSelector } from "react-redux";
 
 export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useSelector((state) => state.auth)
+  console.log(user);
+  
 
   const toggleSearch = () => {
     setIsSearchOpen(!isSearchOpen);
@@ -32,8 +36,8 @@ export default function Navbar() {
                   <User className="h-5 w-5 text-white" />
                 </div>
                 <div className="hidden lg:block">
-                  <div className="text-sm font-medium text-white">John Doe</div>
-                  <div className="text-xs text-white">john@example.com</div>
+                  <div className="text-sm font-medium text-white">{user?.firstName} {user?.lastName}</div>
+                  <div className="text-xs text-white">{user?.email}</div>
                 </div>
               </div>
             </div>

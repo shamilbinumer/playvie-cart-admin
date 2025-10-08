@@ -3,8 +3,14 @@ import { Eye, EyeOff, Shield } from 'lucide-react';
 import TextInput from '../layout/TextInput';
 import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
+import Swal from 'sweetalert2';
+import { useSelector } from 'react-redux';
+import { Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminRegisterPage() {
+  const user = useSelector((state) => state.auth)
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -80,7 +86,7 @@ export default function AdminRegisterPage() {
         lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
-        password: formData.password, // ⚠️ Consider hashing this or storing only a UID reference if using Firebase Auth
+        password: formData.password,
         superAdmin: formData.superAdmin,
         role: 'admin',
         createdAt: new Date(),
@@ -93,7 +99,14 @@ export default function AdminRegisterPage() {
       });
 
 
-      alert("Registration successful! Please check your email for verification.");
+      Swal.fire({
+        title: "Success!",
+        text: "Admin registered successfully.",
+        icon: "success",
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
 
       // Reset form
       setFormData({
@@ -113,7 +126,12 @@ export default function AdminRegisterPage() {
     }
   };
 
-
+  if (!user?.user?.superAdmin) {
+    return <div className='w-full h-screen flex justify-center items-center'>
+      <div className='text-center'>  You Have Cannot Access This Page. This Page only can access super admin
+        <div><Button onClick={() => navigate(-1)}>Back</Button></div></div>
+    </div>
+  }
   return (
     <div className="min-h-screen  flex items-center justify-center p-4">
       <div className="bg-whit w-full  p-8 space-y-8">
@@ -134,7 +152,7 @@ export default function AdminRegisterPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <TextInput
               label="First Name"
-              placeholder="John"
+              placeholder="Enter First Name"
               value={formData.firstName}
               onChange={(value) => handleInputChange({ target: { name: 'firstName', value } })}
               error={errors.firstName}
@@ -143,7 +161,7 @@ export default function AdminRegisterPage() {
 
             <TextInput
               label="Last Name"
-              placeholder="Doe"
+              placeholder="Enter Last Name"
               value={formData.lastName}
               onChange={(value) => handleInputChange({ target: { name: 'lastName', value } })}
               error={errors.lastName}
@@ -164,7 +182,7 @@ export default function AdminRegisterPage() {
             <TextInput
               label="Phone Number"
               type="tel"
-              placeholder="+1 (555) 123-4567"
+              placeholder="Enter Phone Number"
               value={formData.phone}
               onChange={(value) => handleInputChange({ target: { name: 'phone', value } })}
               error={errors.phone}
@@ -245,10 +263,12 @@ export default function AdminRegisterPage() {
                 type="checkbox"
                 id="superAdmin"
                 checked={formData.superAdmin}
-                onChange={(e) => handleInputChange("superAdmin", e.target.checked)}
+                onChange={handleInputChange}  // ✅ just pass the event
+                name="superAdmin"             // ✅ important: add name
                 className="accent-[#81184e]"
               />
               <label htmlFor="superAdmin">Super Admin</label>
+
             </div>
           </div>
 

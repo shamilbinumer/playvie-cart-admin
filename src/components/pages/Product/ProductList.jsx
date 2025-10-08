@@ -1,94 +1,194 @@
-import React, { useState } from 'react'
-import BreadCrumb from '../../layout/BreadCrumb';
-import { PageHeader } from '../../common/PageHeader';
-import AddButton from '../../layout/AddButton';
-import DataTable from '../../layout/DataTable';
-import { SquarePen, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
+import { db } from "../../../firebase"; // adjust path as per your project
+import BreadCrumb from "../../layout/BreadCrumb";
+import { PageHeader } from "../../common/PageHeader";
+import AddButton from "../../layout/AddButton";
+import DataTable from "../../layout/DataTable";
+import { SquarePen, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+import Preloader from "../../common/Preloader";
 
 const ProductList = () => {
-   const navigate = useNavigate();
-   
-   const [brands] = useState([
-      {
-        id: 1,
-        productName: "Electronics",
-        status: "Active",
-        image: "https://fastly.picsum.photos/id/19/200/300.jpg?hmac=znGSIxHtiP0JiLTKW6bT7HlcfagMutcHfeZyNkglQFM"
-      },
-      {
-        id: 2,
-        productName: "Clothing",
-        status: "Active",
-        image: 'https://fastly.picsum.photos/id/19/200/300.jpg?hmac=znGSIxHtiP0JiLTKW6bT7HlcfagMutcHfeZyNkglQFM'
-      },
-      {
-        id: 3,
-        productName: "Books",
-        status: "Inactive",
-        image: "https://fastly.picsum.photos/id/19/200/300.jpg?hmac=znGSIxHtiP0JiLTKW6bT7HlcfagMutcHfeZyNkglQFM"
-      },
-      {
-        id: 4,
-        productName: "Home & Garden",
-        status: "Active",
-        image: "https://fastly.picsum.photos/id/19/200/300.jpg?hmac=znGSIxHtiP0JiLTKW6bT7HlcfagMutcHfeZyNkglQFM"
-      }
-    ]);
-  const columns = [
-    { key: 'index', title: '#' },
-    { key: 'productName', title: 'Product Name' },
-    { key: 'status', title: 'Status' },
-    { key: 'image', title: 'Image' },
-    { key: 'actions', title: 'Actions' }
-  ];
-  const handleEdit = (category) => {
-   
+  const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 🔹 Fetch products from Firestore
+  const fetchProducts = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "products"));
+      const productData = querySnapshot.docs.map((doc, index) => ({
+        id: doc.id,
+        index: index + 1,
+        productName: doc.data().productName,
+        status: doc.data().isActive ? "Active" : "Inactive",
+        image: doc.data().thumbnail,
+      }));
+      setProducts(productData);
+      console.log(productData);
+      
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to load product list.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (category) => {
-   
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const columns = [
+    { key: "index", title: "#" },
+    { key: "productName", title: "Product Name" },
+    { key: "status", title: "Status" },
+    { key: "image", title: "Image" },
+    { key: "actions", title: "Actions" },
+  ];
+
+  // 🔹 Edit handler
+  const handleEdit = (product) => {
+    navigate(`/edit-product/${product.id}`);
   };
-  // Action configuration
+
+  // 🔹 Delete handler with SweetAlert confirmation
+  const handleDelete = async (product) => {
+    const confirm = await Swal.fire({
+      title: "Are you sure?",
+      text: "This product will be permanently deleted.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, Delete it!",
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        await deleteDoc(doc(db, "products", product.id));
+        Swal.fire({
+          icon: "success",
+          title: "Deleted!",
+          text: "Product deleted successfully.",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        fetchProducts(); // refresh list
+      } catch (error) {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Failed to delete product.",
+        });
+      }
+    }
+  };
+
   const actions = [
     {
-      label: 'Edit',
+      label: "Edit",
       handler: handleEdit,
-      icon: SquarePen
+      icon: SquarePen,
     },
     {
-      label: 'Delete',
+      label: "Delete",
       handler: handleDelete,
-      icon: Trash2
-    }
+      icon: Trash2,
+    },
   ];
+  const renderCell = (item, column, index) => {
+    if (column.key === "index") return index + 1;
 
-  
+    if (column.key === "image") {
+      return (
+        <div className="w-15 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+          {item[column.key] ? (
+            <img
+              src={item[column.key]}
+              alt="thumbnail"
+              className="w-full h-full object-cover rounded-lg"
+              loading="lazy"
+            />
+          ) : (
+            <span className="text-gray-400 text-xs">No Image</span>
+          )}
+        </div>
+      );
+    }
+
+    if (column.key === "status") {
+      return (
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-medium ${item[column.key] === "Active"
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
+            }`}
+        >
+          {item[column.key] ? "Active" : "Inactive"}
+        </span>
+      );
+    }
+
+    if (column.key === "actions" && actions) {
+      return (
+        <div className="flex space-x-2">
+          {actions.map((action, i) => (
+            <button
+              key={i}
+              onClick={() => action.handler(item)}
+              className={`flex items-center justify-center rounded transition-colors ${action.label === "Edit" ? "text-green-600" : ""
+                } ${action.label === "Delete" ? "text-red-600" : ""}`}
+            >
+              {action.icon && (
+                <span className="mr-1">
+                  <action.icon width={20} />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    return item[column.key] || "-";
+  };
+if(loading){
+  return <Preloader/>;
+}
   return (
-    <div className='relative'>
-    
-      
-      {/* Main content */}
-      <div className=''>
-        <BreadCrumb
-          items={[
-            { label: "Product List", path: "#" },
-          ]}
-        />
+    <div className="relative">
+      <div>
+        <BreadCrumb items={[{ label: "Product List", path: "#" }]} />
         <PageHeader
           title="Product List"
-          // description="Configure your application preferences"
           className="border-b border-gray-200 pb-4"
-          actionButton={<AddButton title="Create New" onClick={() => navigate('/add-product')} />}
+          actionButton={
+            <AddButton title="Create New" onClick={() => navigate("/add-product")} />
+          }
         />
-        <DataTable
-          columns={columns}
-          data={brands}
-          actions={actions}
-        />
+
+        {/* {loading ? (
+          <div><Preloader/></div>
+        ) : ( */}
+          <div className="p-2">
+            <DataTable
+            columns={columns}
+            data={products}
+            actions={actions}
+            renderCell={renderCell}
+          />
+          </div>
+        {/* // )} */}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ProductList
+export default ProductList;

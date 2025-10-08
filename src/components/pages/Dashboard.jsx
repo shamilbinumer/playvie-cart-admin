@@ -13,9 +13,13 @@ import {
   Menu,
   X
 } from 'lucide-react'
+import { useSelector } from 'react-redux'
 
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const auth=useSelector((state)=>state.auth)
+  console.log(auth);
+  
 
   const stats = [
     {

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import DataTable from '../layout/DataTable';
 import { PageHeader } from '../common/PageHeader';
 import { Switch } from '@mui/material';
+import AddButton from '../layout/AddButton';
 
 const UsersList = () => {
   const navigate = useNavigate();
@@ -69,12 +70,12 @@ const UsersList = () => {
 
     if (column.key === "avatar") {
       return (
-        <div className="w-15 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="w-15 h-8 bg-gray-100 rounded-xs flex items-center justify-center">
           {item[column.key] ? (
             <img
               src={item[column.key]}
               alt="thumbnail"
-              className="w-full h-full object-cover rounded-lg"
+              className="w-full h-full object-cover rounded-sm"
               loading="lazy"
             />
           ) : (
@@ -114,8 +115,13 @@ const UsersList = () => {
       />
       <PageHeader
         title="Users List"
-        // description="Configure your application preferences"
         className="border-b border-gray-200 pb-4"
+          actionButton={
+            <AddButton
+              title="Create New Admin"
+              onClick={() => navigate("/create-new-admin")}
+            />
+          }
       />
       <DataTable
         columns={columns}
