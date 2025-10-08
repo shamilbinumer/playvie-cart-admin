@@ -495,7 +495,7 @@ const ProductForm = () => {
               acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
               onImageSelect={(image) => handleInputChange("thumbnail", image)}
               onImageRemove={() => handleInputChange("thumbnail", null)}
-              initialImage={isEditMode ? formData.thumbnail : null}
+              defaultImage={isEditMode ? formData.thumbnail : null}
               required
             />
             {errors.thumbnail && (
@@ -511,7 +511,7 @@ const ProductForm = () => {
               acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
               onImagesSelect={(images) => handleInputChange("productImages", images)}
               onImagesUpdate={(images) => handleInputChange("productImages", images)}
-              initialImages={isEditMode ? formData.productImages : []}
+              defaultImages={isEditMode ? formData.productImages : []}
               required
             />
             {errors.productImages && (
