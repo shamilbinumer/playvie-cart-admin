@@ -20,6 +20,8 @@ import UsersList from "./components/pages/UsersList";
 import AdminRegisterPage from "./components/pages/SIgnup";
 import Login from "./components/pages/Login";
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import BannersList from "./components/pages/Banners/BannersList";
+import BannersForm from "./components/pages/Banners/BannersForm";
 
 function AppLayout() {
   const location = useLocation();
@@ -127,6 +129,30 @@ function AppLayout() {
               element={
                 <ProtectedRoute>
                   <ProductForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/banners/banner-list"
+              element={
+                <ProtectedRoute>
+                  <BannersList />
+                </ProtectedRoute>
+              }
+            />
+              <Route
+              path="/banners/add-banner"
+              element={
+                <ProtectedRoute>
+                  <BannersForm />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/banners/edit-banner/:bannerId"
+              element={
+                <ProtectedRoute>
+                  <CategoryForm />
                 </ProtectedRoute>
               }
             />

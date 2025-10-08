@@ -340,7 +340,7 @@ const BrandForm = () => {
               onImageRemove={() => handleInputChange("brandLogo", null)}
               error={errors.brandLogo}
               required
-              existingImageUrl={typeof formData.brandLogo === 'string' ? formData.brandLogo : null}
+              defaultImage={formData.brandLogo}
             />
           </div>
 
@@ -355,7 +355,7 @@ const BrandForm = () => {
               onImageRemove={() => handleInputChange("brandBanner", null)}
               error={errors.brandBanner}
               required
-              existingImageUrl={typeof formData.brandBanner === 'string' ? formData.brandBanner : null}
+              defaultImage={formData.brandBanner}
             />
           </div>
         </div>

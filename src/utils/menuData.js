@@ -4,7 +4,8 @@ import {
   Folder,
   Tag,
   House,
-  Box
+  Box,
+  Image
 } from "lucide-react";
 
 export const menuData = [
@@ -42,8 +43,22 @@ export const menuData = [
     url: "/product-list",
     children: []
   },
-  {
+   {
     id: 4,
+    title: "Banners",
+    icon: Image,
+    url: null,
+    children: [
+      {
+        id: 41,
+        title: "Banners",
+        icon: Image,
+        url: "/banners/banner-list"
+      },
+    ]
+  },
+  {
+    id: 5,
     title: "Users",
     icon: Box,
     url: "/users",
