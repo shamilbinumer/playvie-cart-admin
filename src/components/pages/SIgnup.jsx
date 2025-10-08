@@ -7,6 +7,7 @@ import Swal from 'sweetalert2';
 import { useSelector } from 'react-redux';
 import { Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { isAction } from '@reduxjs/toolkit';
 
 export default function AdminRegisterPage() {
   const user = useSelector((state) => state.auth)
@@ -18,7 +19,9 @@ export default function AdminRegisterPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    superAdmin: false
+    superAdmin: false,
+    isActive:true
+
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -90,6 +93,7 @@ export default function AdminRegisterPage() {
         superAdmin: formData.superAdmin,
         role: 'admin',
         createdAt: new Date(),
+        isActive:formData.isActive
       };
 
       const docRef = await doc(collection(db, "users"));
@@ -117,6 +121,7 @@ export default function AdminRegisterPage() {
         password: "",
         confirmPassword: "",
         superAdmin: false,
+        isActive:true
       });
     } catch (error) {
       console.error("Error adding admin to Firestore:", error);
@@ -268,6 +273,18 @@ export default function AdminRegisterPage() {
                 className="accent-[#81184e]"
               />
               <label htmlFor="superAdmin">Super Admin</label>
+
+            </div>
+              <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isActive"
+                checked={formData.isActive}
+                onChange={handleInputChange}  // ✅ just pass the event
+                name="isActive"             // ✅ important: add name
+                className="accent-[#81184e]"
+              />
+              <label htmlFor="isActive">isActive</label>
 
             </div>
           </div>

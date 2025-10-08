@@ -1,72 +1,90 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import BreadCrumb from '../layout/BreadCrumb'
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../layout/DataTable';
 import { PageHeader } from '../common/PageHeader';
 import { Switch } from '@mui/material';
 import AddButton from '../layout/AddButton';
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
+import { db } from "../../firebase"; // Adjust path based on your structure
+import Preloader from '../common/Preloader';
+import Swal from 'sweetalert2';
 
 const UsersList = () => {
   const navigate = useNavigate();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // ✅ Replace brands with users
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: "Nabeel",
-      email: "nabeel@example.com",
-      role: "Admin",
-      status: true,
-      avatar: "https://i.pravatar.cc/150?img=1"
-    },
-    {
-      id: 2,
-      name: "Bushra",
-      email: "bushra@example.com",
-      role: "Editor",
-      status: false,
-      avatar: "https://i.pravatar.cc/150?img=2"
-    },
-    {
-      id: 3,
-      name: "Mohammed",
-      email: "mohammed@example.com",
-      role: "User",
-      status: true,
-      avatar: "https://i.pravatar.cc/150?img=3"
-    },
-    {
-      id: 4,
-      name: "Sabith",
-      email: "sabith@example.com",
-      role: "User",
-      status: false,
-      avatar: "https://i.pravatar.cc/150?img=4"
-    }
-  ]);
+  // Fetch users from Firebase
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  // ✅ Update columns - removed actions, changed role to active/inactive toggle
+        const querySnapshot = await getDocs(collection(db, "users"));
+        const userList = querySnapshot.docs.map((doc, index) => ({
+          id: doc.id,
+          ...doc.data(),
+          index: index + 1,
+        }));
+        
+        setUsers(userList);
+      } catch (error) {
+        console.error("Error fetching users: ", error);
+        setError("Failed to load users. Please try again.");
+        Swal.fire("Error!", "Failed to load users.", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
   const columns = [
     { key: "index", title: "#" },
-    { key: "name", title: "Name" },
+    { key: "fullName", title: "Name" },
     { key: "email", title: "Email" },
-    { key: "avatar", title: "Avatar" },
-    { key: "status", title: "Active/Inactive" }
+    { key: "phone", title: "Phone" },
+    { key: "role", title: "Role" },
+    { key: "isActive", title: "Active/Inactive" }
   ];
 
-  // Handle toggle status
-  const handleStatusToggle = (userId) => {
-    setUsers(prevUsers => 
-      prevUsers.map(user => 
-        user.id === userId 
-          ? { ...user, status: !user.status }
-          : user
-      )
-    );
+  // Handle toggle status - updates Firebase
+  const handleStatusToggle = async (user) => {
+    try {
+      const newStatus = !user.isActive;
+      
+      // Update in Firebase
+      await updateDoc(doc(db, "users", user.id), {
+        isActive: newStatus
+      });
+
+      // Update local state
+      setUsers(prevUsers =>
+        prevUsers.map(u =>
+          u.id === user.id
+            ? { ...u, isActive: newStatus }
+            : u
+        )
+      );
+
+      // Optional: Show success message
+      // Swal.fire("Updated!", `User status changed to ${newStatus ? 'Active' : 'Inactive'}`, "success");
+    } catch (error) {
+      console.error("Error updating user status: ", error);
+      Swal.fire("Error!", "Failed to update user status.", "error");
+    }
   };
 
   const renderCell = (item, column, index) => {
     if (column.key === "index") return index + 1;
+
+    if (column.key === "fullName") {
+      return `${item.firstName || ''} ${item.lastName || ''}`.trim() || "-";
+    }
 
     if (column.key === "avatar") {
       return (
@@ -85,11 +103,11 @@ const UsersList = () => {
       );
     }
 
-    if (column.key === "status") {
+    if (column.key === "isActive") {
       return (
         <Switch
-          checked={item.status}
-          onChange={() => handleStatusToggle(item.id)}
+          checked={item.isActive || false}
+          onChange={() => handleStatusToggle(item)}
           size="small"
           sx={{
             '& .MuiSwitch-switchBase.Mui-checked': {
@@ -106,6 +124,10 @@ const UsersList = () => {
     return item[column.key] || "-";
   };
 
+  if (loading) {
+    return <div><Preloader /></div>
+  }
+
   return (
     <div>
       <BreadCrumb
@@ -113,21 +135,35 @@ const UsersList = () => {
           { label: "Users List", path: "#" },
         ]}
       />
-      <PageHeader
-        title="Users List"
-        className="border-b border-gray-200 pb-4"
+      <div className="p-2">
+        <PageHeader
+          title="Users List"
+          className="border-b border-gray-200 pb-4"
           actionButton={
             <AddButton
               title="Create New Admin"
               onClick={() => navigate("/create-new-admin")}
+              disabled={loading}
             />
           }
-      />
-      <DataTable
-        columns={columns}
-        data={users}
-        renderCell={renderCell}
-      />
+        />
+
+        {/* Data Table */}
+        {!loading && !error && users.length > 0 && (
+          <DataTable
+            columns={columns}
+            data={users}
+            renderCell={renderCell}
+          />
+        )}
+
+        {/* No data message */}
+        {!loading && !error && users.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No users found
+          </div>
+        )}
+      </div>
     </div>
   )
 }
