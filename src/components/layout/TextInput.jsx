@@ -6,7 +6,8 @@ const TextInput = ({
   error = '', 
   disabled = false,
   required = false,
-  type = 'text'
+  type = 'text',
+  min="",
 }) => {
   return (
     <div className="w-full">
@@ -18,6 +19,8 @@ const TextInput = ({
       )}
       <input
         type={type}
+        min={min}
+        format="dd-mm-yyyy"
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}

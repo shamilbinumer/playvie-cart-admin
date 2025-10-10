@@ -152,7 +152,7 @@ function AppLayout() {
               path="/banners/edit-banner/:bannerId"
               element={
                 <ProtectedRoute>
-                  <CategoryForm />
+                  <BannersForm />
                 </ProtectedRoute>
               }
             />

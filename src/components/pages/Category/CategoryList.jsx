@@ -51,7 +51,19 @@ const CategoryList = () => {
   ];
 
   const handleEdit = (category) => {
-    navigate(`/master/edit-category/${category.id}`);
+      navigate(`/master/edit-category/${category.id}`, {
+    state: {
+      categoryData: {
+       categoryName: category.categoryName ,
+        bannerImage: category.bannerImage,
+        thumbnailImage: category.thumbnailImage ,
+        backgroundColor: category.backgroundColor ,
+        priority: category.priority,
+        isActive: category.isActive,
+        id: category.id
+      }
+    }
+  });
   };
 
   const handleDelete = async (category) => {
@@ -181,7 +193,7 @@ const CategoryList = () => {
             }
           />
 
-          {!loading && !error && categories.length > 0 && (
+          {!loading && !error && (
             <DataTable
               columns={columns}
               data={categories}

@@ -49,9 +49,22 @@ const BrandList = () => {
     { key: "actions", title: "Actions" },
   ];
 
-  const handleEdit = (brand) => {
-    navigate(`/master/edit-brand/${brand.id}`);
-  };
+  // BrandList.jsx - Updated handleEdit function
+const handleEdit = (brand) => {
+  navigate(`/master/edit-brand/${brand.id}`, {
+    state: {
+      brandData: {
+        brandName: brand.brandName,
+        brandLogo: brand.brandLogo,
+        brandBanner: brand.brandBanner,
+        description: brand.description,
+        priority: brand.priority,
+        isActive: brand.isActive,
+        id: brand.id
+      }
+    }
+  });
+};
 
   const handleDelete = async (brand) => {
     const result = await Swal.fire({
@@ -174,7 +187,7 @@ const BrandList = () => {
         />
 
         {/* Data Table */}
-        {!loading && !error && brands.length > 0 && (
+        {!loading && !error && (
           <DataTable
             columns={columns}
             data={brands}

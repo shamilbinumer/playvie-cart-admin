@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, addDoc, setDoc, serverTimestamp, doc, query, where, getDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, setDoc, serverTimestamp, doc, query, where, updateDoc } from "firebase/firestore";
 import Swal from "sweetalert2";
 import { db } from "../../../firebase";
 import BreadCrumb from "../../layout/BreadCrumb";
@@ -9,12 +9,15 @@ import SearchableDropdown from "../../layout/SearchabelDropdown";
 import MultipleImageUpload from "../../layout/MultipleImagesUpload";
 import SingleImageUpload from "../../layout/SingleImageUpload";
 import TextArea from "../../layout/TextArea";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import Preloader from "../../common/Preloader";
 
 const ProductForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { productId } = useParams();
   const isEditMode = Boolean(productId);
+  
   const [formData, setFormData] = useState({
     productName: "",
     productCode: "",
@@ -30,65 +33,60 @@ const ProductForm = () => {
     thumbnail: null,
     productImages: [],
     isActive: true,
+    oneRating: 0,
+    twoRating: 0,
+    threeRating: 0,
+    fourRating: 0,
+    fiveRating: 0,
   });
 
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
   const [originalSkuCode, setOriginalSkuCode] = useState("");
 
-  // Fetch product data in edit mode
+  // Load product data from navigation state (edit mode)
   useEffect(() => {
-    const fetchProductData = async () => {
-      if (!isEditMode) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const productRef = doc(db, "products", productId);
-        const productSnap = await getDoc(productRef);
-
-        if (productSnap.exists()) {
-          const data = productSnap.data();
-          setFormData({
-            productName: data.productName || "",
-            productCode: data.productCode || "",
-            skuCode: data.skuCode || "",
-            shortDescription: data.shortDescription || "",
-            longDescription: data.longDescription || "",
-            mrp: data.mrp || "",
-            salesPrice: data.salesPrice || "",
-            purchaseRate: data.purchaseRate || "",
-            handlingTime: data.handlingTime || "",
-            categoryId: data.categoryId || "",
-            brandId: data.brandId || "",
-            thumbnail: data.thumbnail || null,
-            productImages: data.productImages || [],
-            isActive: data.isActive ?? true,
-          });
-          setOriginalSkuCode(data.skuCode || "");
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Product Not Found",
-            text: "The product you're trying to edit doesn't exist.",
-          });
-          navigate("/product-list");
-        }
-      } catch (error) {
-        console.error("Error fetching product:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Failed to load product data.",
-        });
-      }
-    };
-
-    fetchProductData();
-  }, [productId, isEditMode, navigate]);
+    if (isEditMode && location.state?.productData) {
+      const productData = location.state.productData;
+      console.log("Loaded product data for editing:", productData);
+      setFormData({
+        productName: productData.productName || "",
+        productCode: productData.productCode || "",
+        skuCode: productData.skuCode || "",
+        shortDescription: productData.shortDescription || "",
+        longDescription: productData.longDescription || "",
+        mrp: productData.mrp || "",
+        salesPrice: productData.salesPrice || "",
+        purchaseRate: productData.purchaseRate || "",
+        handlingTime: productData.handlingTime || "",
+        categoryId: productData.categoryId || "",
+        brandId: productData.brandId || "",
+        thumbnail: productData.thumbnail || null,
+        productImages: productData.productImages || [],
+        isActive: productData.isActive ?? true,
+        fiveRating: productData.fiveRating || 0,
+        fourRating: productData.fourRating || 0,
+        threeRating: productData.threeRating || 0,
+        twoRating: productData.twoRating || 0,
+        oneRating: productData.oneRating || 0,
+        id: productData.id || "",
+      });
+      setOriginalSkuCode(productData.skuCode || "");
+    } else if (isEditMode && !location.state?.productData) {
+      // If navigated directly to edit URL without state, redirect to list
+      Swal.fire({
+        title: "Error!",
+        text: "Invalid access. Please select a product from the list.",
+        icon: "error",
+        confirmButtonText: "OK",
+      }).then(() => {
+        navigate("/product-list");
+      });
+    }
+  }, [isEditMode, location.state, navigate, productId]);
 
   // Fetch categories from Firestore
   useEffect(() => {
@@ -130,8 +128,6 @@ const ProductForm = () => {
         setBrands(brandList);
       } catch (error) {
         console.error("Error fetching brands:", error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -160,21 +156,39 @@ const ProductForm = () => {
       return imageFile;
     }
 
-    const formData = new FormData();
-    formData.append("image", imageFile);
+    // If it's a File or Blob, upload it
+    if (imageFile instanceof File || imageFile instanceof Blob) {
+      const formData = new FormData();
+      formData.append("image", imageFile);
 
-    try {
-      const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) return data.data.url;
-      else throw new Error("ImgBB upload failed");
-    } catch (error) {
-      console.error("ImgBB Upload Error:", error);
-      return null;
+      try {
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const data = await res.json();
+        
+        if (!data.success) {
+          throw new Error(data.error?.message || "Image upload failed");
+        }
+
+        if (!data.data?.url) {
+          throw new Error("No URL returned from image upload service");
+        }
+
+        return data.data.url;
+      } catch (error) {
+        console.error("ImgBB Upload Error:", error);
+        throw new Error(`Image upload failed: ${error.message}`);
+      }
     }
+
+    throw new Error("Invalid image file");
   };
 
   const validateForm = () => {
@@ -225,6 +239,8 @@ const ProductForm = () => {
     }
     if (!formData.thumbnail) {
       newErrors.thumbnail = "Thumbnail image is required";
+    } else if (typeof formData.thumbnail === 'string' && formData.thumbnail.trim() === '') {
+      newErrors.thumbnail = "Thumbnail image is required";
     }
     if (formData.productImages.length === 0) {
       newErrors.productImages = "At least one product image is required";
@@ -238,6 +254,8 @@ const ProductForm = () => {
     if (!validateForm()) return;
 
     try {
+      setLoading(true);
+
       // Check if SKU already exists (skip if same as original in edit mode)
       if (!isEditMode || formData.skuCode !== originalSkuCode) {
         const productsRef = collection(db, "products");
@@ -250,26 +268,31 @@ const ProductForm = () => {
             title: "Duplicate SKU!",
             text: "A product with this SKU code already exists. Please use a unique SKU.",
           });
+          setLoading(false);
           return;
         }
       }
 
-      Swal.fire({
-        title: isEditMode ? "Updating..." : "Uploading...",
-        text: "Please wait while we save your product.",
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading(),
-      });
-
       // Upload thumbnail (handles both new uploads and existing URLs)
-      const thumbnailUrl = await uploadToImgBB(formData.thumbnail);
-      if (!thumbnailUrl) throw new Error("Thumbnail upload failed");
+      let thumbnailUrl = formData.thumbnail;
+      try {
+        thumbnailUrl = await uploadToImgBB(formData.thumbnail);
+        if (!thumbnailUrl) throw new Error("Thumbnail upload failed");
+      } catch (error) {
+        console.error("Error uploading thumbnail:", error);
+        throw new Error("Failed to upload thumbnail: " + error.message);
+      }
 
       // Upload product images
       const productImageUrls = [];
       for (const img of formData.productImages) {
-        const url = await uploadToImgBB(img);
-        if (url) productImageUrls.push(url);
+        try {
+          const url = await uploadToImgBB(img);
+          if (url) productImageUrls.push(url);
+        } catch (error) {
+          console.error("Error uploading product image:", error);
+          throw new Error("Failed to upload product images: " + error.message);
+        }
       }
 
       // Get category & brand names
@@ -278,29 +301,46 @@ const ProductForm = () => {
 
       // Prepare product data
       const productData = {
-        ...formData,
+        productName: formData.productName.trim(),
+        productCode: formData.productCode.trim(),
+        skuCode: formData.skuCode.trim(),
+        shortDescription: formData.shortDescription.trim(),
+        longDescription: formData.longDescription.trim(),
+        mrp: formData.mrp,
+        salesPrice: formData.salesPrice,
+        purchaseRate: formData.purchaseRate,
+        handlingTime: formData.handlingTime,
+        categoryId: formData.categoryId,
         categoryName: selectedCategory?.label || "",
+        brandId: formData.brandId,
         brandName: selectedBrand?.label || "",
         thumbnail: thumbnailUrl,
         productImages: productImageUrls,
         isActive: formData.isActive,
+        oneRating: formData.oneRating,
+        twoRating: formData.twoRating,
+        threeRating: formData.threeRating,
+        fourRating: formData.fourRating,
+        fiveRating: formData.fiveRating,
+        updatedAt: serverTimestamp(),
       };
 
       if (isEditMode) {
         // Update existing product
-        const productRef = doc(db, "products", productId);
-        await updateDoc(productRef, {
+        await updateDoc(doc(db, "products", productId), {
           ...productData,
-          updatedAt: serverTimestamp(),
+          productId: productId,
         });
 
         Swal.fire({
+          title: "Success!",
+          text: "Product updated successfully.",
           icon: "success",
-          title: "Product Updated!",
-          text: "Your product has been successfully updated.",
-          timer: 1500,
           showConfirmButton: false,
+          timer: 2000,
+          toast: true,
         });
+        navigate('/product-list');
       } else {
         // Create new product
         const docRef = doc(collection(db, "products"));
@@ -311,18 +351,16 @@ const ProductForm = () => {
         });
 
         Swal.fire({
+          title: "Success!",
+          text: "Product created successfully.",
           icon: "success",
-          title: "Product Added!",
-          text: "Your product has been successfully created.",
-          timer: 1500,
           showConfirmButton: false,
+          timer: 2000,
+          toast: true,
         });
-      }
 
-      navigate('/product-list');
-
-      // Reset form only if not in edit mode
-      if (!isEditMode) {
+         navigate('/product-list');
+        // Reset form for create mode
         setFormData({
           productName: "",
           productCode: "",
@@ -338,23 +376,33 @@ const ProductForm = () => {
           thumbnail: null,
           productImages: [],
           isActive: true,
+          oneRating: 0,
+          twoRating: 0,
+          threeRating: 0, 
+          fourRating: 0,
+          fiveRating: 0,
         });
       }
     } catch (error) {
       console.error("Error saving product:", error);
       Swal.fire({
-        icon: "error",
         title: "Error!",
-        text: "Something went wrong while saving the product.",
+        text: error.message || "Failed to save product",
+        icon: "error",
+        confirmButtonText: "Retry",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (loading) {
+  const handleCancel = () => {
+    navigate('/product-list');
+  };
+
+  if (initialLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <p>Loading...</p>
-      </div>
+      <div><Preloader /></div>
     );
   }
 
@@ -369,9 +417,9 @@ const ProductForm = () => {
       />
       <FormContainer
         title={isEditMode ? "Edit Product" : "Add Product"}
-        onCancel={() => navigate('/product-list')}
+        onCancel={handleCancel}
         onSubmit={handleSubmit}
-        submitText={isEditMode ? "Update Product" : "Create Product"}
+        submitText={loading ? "Saving..." : (isEditMode ? "Update Product" : "Create Product")}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <TextInput
@@ -526,6 +574,7 @@ const ProductForm = () => {
             id="isActive" 
             checked={formData.isActive}
             onChange={(e) => handleInputChange("isActive", e.target.checked)}
+            className="accent-[#81184e]"
           />
           <label htmlFor="isActive">Is Active</label>
         </div>

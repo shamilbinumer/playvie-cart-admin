@@ -5,10 +5,9 @@ import TextInput from "../../layout/TextInput";
 import SingleImageUpload from "../../layout/SingleImageUpload";
 import BreadCrumb from "../../layout/BreadCrumb";
 import { db } from "../../../firebase";
-import { collection, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, setDoc, updateDoc } from "firebase/firestore";
 import Swal from "sweetalert2";
-import { useNavigate, useParams } from "react-router-dom";
-import Preloader from "../../common/Preloader";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const CategoryForm = () => {
   const [formData, setFormData] = useState({
@@ -22,48 +21,38 @@ const CategoryForm = () => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const[fetchLoading,setFetchLoading]=useState(false);
 
   const { categoryId } = useParams();
+  const location = useLocation();
   const isEditMode = Boolean(categoryId);
 
   const API_KEY = "YOUR_IMGBB_API_KEY"; // move to .env
   const navigate = useNavigate();
 
-  // Load existing category if edit mode
+  // Load category data from navigation state (edit mode)
   useEffect(() => {
-    const fetchCategory = async () => {
-      if (isEditMode) {
-        try {
-          setFetchLoading(true);
-          const docRef = doc(db, "categories", categoryId);
-          const docSnap = await getDoc(docRef);
-
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            console.log(data);
-            
-            setFormData({
-              categoryName: data.categoryName || "",
-              bannerImage: data.bannerImage || null,
-              thumbnailImage: data.thumbnailImage || null,
-              backgroundColor: data.backgroundColor || "#3498db",
-              priority: data.priority || "",
-              isActive: data.isActive ?? true,
-            });
-          } else {
-            Swal.fire("Error", "Category not found", "error");
-            navigate("/master/category-list");
-          }
-        } catch (err) {
-          console.error("Error fetching category:", err);
-        } finally {
-          setFetchLoading(false);
-        }
-      }
-    };
-    fetchCategory();
-  }, [isEditMode, categoryId, navigate]);
+    if (isEditMode && location.state?.categoryData) {
+      const categoryData = location.state.categoryData;
+      setFormData({
+        categoryName: categoryData.categoryName || "",
+        bannerImage: categoryData.bannerImage || null,
+        thumbnailImage: categoryData.thumbnailImage || null,
+        backgroundColor: categoryData.backgroundColor || "#3498db",
+        priority: categoryData.priority || "",
+        isActive: categoryData.isActive ?? true,
+      });
+    } else if (isEditMode && !location.state?.categoryData) {
+      // If navigated directly to edit URL without state, redirect to list
+      Swal.fire({
+        title: "Error!",
+        text: "Invalid access. Please select a category from the list.",
+        icon: "error",
+        confirmButtonText: "OK",
+      }).then(() => {
+        navigate("/master/category-list");
+      });
+    }
+  }, [isEditMode, location.state, navigate]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -98,34 +87,33 @@ const CategoryForm = () => {
 
   // Upload image to imgbb (only if it's a File, not a URL)
   const uploadToImgBB = async (fileOrUrl) => {
-  if (!fileOrUrl) return null;
+    if (!fileOrUrl) return null;
 
-  // If it's already a URL (string), just return it
-  if (typeof fileOrUrl === "string") return fileOrUrl;
+    // If it's already a URL (string), just return it
+    if (typeof fileOrUrl === "string") return fileOrUrl;
 
-  try {
-    const fd = new FormData();
-    fd.append("image", fileOrUrl);
+    try {
+      const fd = new FormData();
+      fd.append("image", fileOrUrl);
 
-    const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
-      method: "POST",
-      body: fd,
-    });
+      const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
+        method: "POST",
+        body: fd,
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data && data.data && data.data.url) {
-      return data.data.url;
-    } else {
-      console.error("ImgBB upload failed:", data);
-      return null; // fallback
+      if (data && data.data && data.data.url) {
+        return data.data.url;
+      } else {
+        console.error("ImgBB upload failed:", data);
+        return null;
+      }
+    } catch (err) {
+      console.error("Error uploading to Imgbb:", err);
+      return null;
     }
-  } catch (err) {
-    console.error("Error uploading to Imgbb:", err);
-    return null;
-  }
-};
-
+  };
 
   const handleSubmit = async () => {
     if (!validateForm()) return;
@@ -139,6 +127,7 @@ const CategoryForm = () => {
       if (isEditMode) {
         const docRef = doc(db, "categories", categoryId);
         await updateDoc(docRef, {
+          id: categoryId,
           categoryName: formData.categoryName,
           bannerImage: bannerUrl,
           thumbnailImage: thumbnailUrl,
@@ -147,7 +136,14 @@ const CategoryForm = () => {
           isActive: formData.isActive,
           updatedAt: new Date(),
         });
-        Swal.fire("Success!", "Category updated successfully.", "success");
+        Swal.fire({
+          title: "Success!",
+          text: "Category updated successfully.",
+          icon: "success",
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
       } else {
         const docRef = doc(collection(db, "categories"));
         await setDoc(docRef, {
@@ -160,7 +156,14 @@ const CategoryForm = () => {
           isActive: formData.isActive,
           createdAt: new Date(),
         });
-        Swal.fire("Success!", "Category added successfully.", "success");
+        Swal.fire({
+          title: "Success!",
+          text: "Category added successfully.",
+          icon: "success",
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
       }
 
       navigate("/master/category-list");
@@ -171,10 +174,6 @@ const CategoryForm = () => {
       setLoading(false);
     }
   };
-
-  if(fetchLoading){
-    return <Preloader/>
-  }
 
   return (
     <>

@@ -4,14 +4,15 @@ import TextInput from "../../layout/TextInput";
 import SingleImageUpload from "../../layout/SingleImageUpload";
 import BreadCrumb from "../../layout/BreadCrumb";
 import { db } from "../../../firebase";
-import { collection, addDoc, doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { collection, doc, updateDoc, setDoc } from "firebase/firestore";
 import Swal from "sweetalert2";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import Preloader from "../../common/Preloader";
 
 const BrandForm = () => {
   const { brandId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const isEditMode = Boolean(brandId);
 
   const [formData, setFormData] = useState({
@@ -19,60 +20,40 @@ const BrandForm = () => {
     brandLogo: null,
     brandBanner: null,
     description: "",
-    priority: "", // New priority field
+    priority: "",
     isActive: true,
   });
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(isEditMode);
+  const [initialLoading, setInitialLoading] = useState(false);
 
   const API_KEY = 'de98e3de28eb4beeec9706734178ec3a';
   
-  // Load existing brand data when in edit mode
+  // Load brand data from navigation state (edit mode)
   useEffect(() => {
-    if (isEditMode && brandId) {
-      loadBrandData();
-    }
-  }, [isEditMode, brandId]);
-
-  const loadBrandData = async () => {
-    try {
-      setInitialLoading(true);
-      const brandDoc = await getDoc(doc(db, "brands", brandId));
-
-      if (brandDoc.exists()) {
-        const brandData = brandDoc.data();
-        setFormData({
-          brandName: brandData.brandName || "",
-          brandLogo: brandData.brandLogo || null, // Store URL for existing images
-          brandBanner: brandData.brandBanner || null, // Store URL for existing images
-          description: brandData.description || "",
-          priority: brandData.priority || "", // Load priority value
-          isActive: brandData.isActive || false,
-        });
-      } else {
-        Swal.fire({
-          title: "Error!",
-          text: "Brand not found.",
-          icon: "error",
-          confirmButtonText: "OK",
-        }).then(() => {
-          navigate("/master/brand-list");
-        });
-      }
-    } catch (error) {
-      console.error("Error loading brand:", error);
+    if (isEditMode && location.state?.brandData) {
+      const brandData = location.state.brandData;
+      setFormData({
+        brandName: brandData.brandName || "",
+        brandLogo: brandData.brandLogo || null,
+        brandBanner: brandData.brandBanner || null,
+        description: brandData.description || "",
+        priority: brandData.priority || "",
+        isActive: brandData.isActive || false,
+      });
+    } else if (isEditMode && !location.state?.brandData) {
+      // If navigated directly to edit URL without state, redirect to list
       Swal.fire({
         title: "Error!",
-        text: "Failed to load brand data.",
+        text: "Invalid access. Please select a brand from the list.",
         icon: "error",
         confirmButtonText: "OK",
+      }).then(() => {
+        navigate("/master/brand-list");
       });
-    } finally {
-      setInitialLoading(false);
     }
-  };
+  }, [isEditMode, location.state, navigate]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -109,36 +90,19 @@ const BrandForm = () => {
       }
     }
     
-    // For logo validation - check if it's a File, Blob, or valid URL string
+    // For logo validation
     if (!formData.brandLogo) {
       newErrors.brandLogo = "Brand logo is required";
     } else if (typeof formData.brandLogo === 'string' && formData.brandLogo.trim() === '') {
       newErrors.brandLogo = "Brand logo is required";
     }
     
-    // For banner validation - check if it's a File, Blob, or valid URL string
+    // For banner validation
     if (!formData.brandBanner) {
       newErrors.brandBanner = "Brand banner is required";
     } else if (typeof formData.brandBanner === 'string' && formData.brandBanner.trim() === '') {
       newErrors.brandBanner = "Brand banner is required";
     }
-
-    console.log("Validation results:", {
-      formData: {
-        brandName: formData.brandName,
-        description: formData.description,
-        priority: formData.priority,
-        brandLogo: formData.brandLogo,
-        brandBanner: formData.brandBanner,
-        logoType: typeof formData.brandLogo,
-        bannerType: typeof formData.brandBanner,
-        logoIsFile: formData.brandLogo instanceof File,
-        bannerIsFile: formData.brandBanner instanceof File,
-        logoIsBlob: formData.brandLogo instanceof Blob,
-        bannerIsBlob: formData.brandBanner instanceof Blob
-      },
-      errors: newErrors
-    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -187,6 +151,7 @@ const BrandForm = () => {
 
       let logoUrl = formData.brandLogo;
       let bannerUrl = formData.brandBanner;
+
       // Upload new images if they are File or Blob objects (not URLs)
       if (formData.brandLogo instanceof File || formData.brandLogo instanceof Blob) {
         try {
@@ -208,34 +173,30 @@ const BrandForm = () => {
         }
       }
 
-      // console.log("Final URLs before validation:", { logoUrl, bannerUrl });
-
       // Ensure we have valid URLs before saving
       if (!logoUrl || typeof logoUrl !== 'string' || logoUrl.trim() === '') {
-        console.error("Invalid logo URL:", logoUrl, typeof logoUrl);
-        throw new Error(`Invalid brand logo URL: ${logoUrl}`);
+        throw new Error(`Invalid brand logo URL`);
       }
 
       if (!bannerUrl || typeof bannerUrl !== 'string' || bannerUrl.trim() === '') {
-        console.error("Invalid banner URL:", bannerUrl, typeof bannerUrl);
-        throw new Error(`Invalid brand banner URL: ${bannerUrl}`);
+        throw new Error(`Invalid brand banner URL`);
       }
 
       const brandData = {
         brandName: formData.brandName.trim(),
         description: formData.description.trim(),
-        priority: parseInt(formData.priority), // Convert to number
-        brandLogo: logoUrl, // This should always be a string URL
-        brandBanner: bannerUrl, // This should always be a string URL
+        priority: parseInt(formData.priority),
+        brandLogo: logoUrl,
+        brandBanner: bannerUrl,
         isActive: formData.isActive,
         updatedAt: new Date(),
       };
 
       if (isEditMode) {
-        // Update existing brand - include the document ID
+        // Update existing brand
         await updateDoc(doc(db, "brands", brandId), {
           ...brandData,
-          id: brandId, // Store the document ID in the document itself
+          id: brandId,
         });
 
         Swal.fire({
@@ -248,11 +209,9 @@ const BrandForm = () => {
         });
         navigate("/master/brand-list");
       } else {
+        // Create new brand
+        const docRef = doc(collection(db, "brands"));
 
-       
-        const docRef= await doc(collection(db, "brands"))
-
-        // Update the document to include its own ID
         await setDoc(docRef, {
           ...brandData,
           id: docRef.id, 
@@ -267,14 +226,14 @@ const BrandForm = () => {
           timer: 2000,
           toast: true,
         });
-
+        navigate("/master/brand-list");
         // Reset form for create mode
         setFormData({
           brandName: "",
           brandLogo: null,
           brandBanner: null,
           description: "",
-          priority: "", // Reset priority field
+          priority: "",
           isActive: false,
         });
       }
@@ -326,8 +285,6 @@ const BrandForm = () => {
           required
         />
 
-      
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Brand Logo */}
           <div>
@@ -360,31 +317,31 @@ const BrandForm = () => {
           </div>
         </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Description */}
-        <TextInput
-          label="Description"
-          placeholder="Enter brand description"
-          value={formData.description}
-          onChange={(value) => handleInputChange("description", value)}
-          error={errors.description}
-          required
-          multiline
-          rows={4}
-        />
+          <TextInput
+            label="Description"
+            placeholder="Enter brand description"
+            value={formData.description}
+            onChange={(value) => handleInputChange("description", value)}
+            error={errors.description}
+            required
+            multiline
+            rows={4}
+          />
           {/* Priority Field */}
-        <TextInput
-          label="Priority"
-          placeholder="Enter priority (e.g., 1, 2, 3...)"
-          type="number"
-          value={formData.priority}
-          onChange={(value) => handleInputChange("priority", value)}
-          error={errors.priority}
-          required
-          min="0"
-          step="1"
-        />
-      </div>
+          <TextInput
+            label="Priority"
+            placeholder="Enter priority (e.g., 1, 2, 3...)"
+            type="number"
+            value={formData.priority}
+            onChange={(value) => handleInputChange("priority", value)}
+            error={errors.priority}
+            required
+            min="0"
+            step="1"
+          />
+        </div>
 
         {/* Is Active Checkbox */}
         <div className="flex items-center space-x-2">

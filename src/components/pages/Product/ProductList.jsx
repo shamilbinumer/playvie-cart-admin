@@ -20,11 +20,7 @@ const ProductList = () => {
     try {
       const querySnapshot = await getDocs(collection(db, "products"));
       const productData = querySnapshot.docs.map((doc, index) => ({
-        id: doc.id,
-        index: index + 1,
-        productName: doc.data().productName,
-        status: doc.data().isActive ? "Active" : "Inactive",
-        image: doc.data().thumbnail,
+      ...doc.data()
       }));
       setProducts(productData);
       console.log(productData);
@@ -49,13 +45,40 @@ const ProductList = () => {
     { key: "index", title: "#" },
     { key: "productName", title: "Product Name" },
     { key: "status", title: "Status" },
-    { key: "image", title: "Image" },
+    { key: "thumbnail", title: "Image" },
     { key: "actions", title: "Actions" },
   ];
 
   // 🔹 Edit handler
   const handleEdit = (product) => {
-    navigate(`/edit-product/${product.id}`);
+    console.log("Editing product:", product);
+    
+    navigate(`/edit-product/${product.id}`,{
+      state: {
+        productData: {
+        productName: product.productName,
+        productCode: product.productCode ,
+        skuCode: product.skuCode,
+        shortDescription: product.shortDescription,
+        longDescription: product.longDescription,
+        mrp: product.mrp,
+        salesPrice: product.salesPrice,
+        purchaseRate: product.purchaseRate,
+        handlingTime: product.handlingTime,
+        categoryId: product.categoryId,
+        brandId: product.brandId,
+        thumbnail: product.thumbnail,
+        productImages: product.productImages,
+        isActive: product.isActive,
+        fiveRating: product.fiveRating ,
+        fourRating: product.fourRating ,
+        threeRating: product.threeRating ,
+        twoRating: product.twoRating ,
+        oneRating: product.oneRating,
+        id: product.id,
+        }
+      }
+    });
   };
 
   // 🔹 Delete handler with SweetAlert confirmation
@@ -106,7 +129,7 @@ const ProductList = () => {
   const renderCell = (item, column, index) => {
     if (column.key === "index") return index + 1;
 
-    if (column.key === "image") {
+    if (column.key === "thumbnail") {
       return (
         <div className="w-15 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
           {item[column.key] ? (
