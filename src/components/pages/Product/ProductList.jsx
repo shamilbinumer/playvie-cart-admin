@@ -44,7 +44,7 @@ const ProductList = () => {
   const columns = [
     { key: "index", title: "#" },
     { key: "productName", title: "Product Name" },
-    { key: "status", title: "Status" },
+    { key: "isActive", title: "Status" },
     { key: "thumbnail", title: "Image" },
     { key: "actions", title: "Actions" },
   ];
@@ -146,10 +146,10 @@ const ProductList = () => {
       );
     }
 
-    if (column.key === "status") {
+    if (column.key === "isActive") {
       return (
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${item[column.key] === "Active"
+          className={`px-2 py-1 rounded-full text-xs font-medium ${item[column.key] === true
             ? "bg-green-100 text-green-800"
             : "bg-red-100 text-red-800"
             }`}
