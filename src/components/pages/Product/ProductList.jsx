@@ -197,9 +197,10 @@ if(loading){
           }
         />
 
-        {/* {loading ? (
+        {loading ? (
           <div><Preloader/></div>
-        ) : ( */}
+        )
+         : (
           <div className="p-2">
             <DataTable
             columns={columns}
@@ -208,7 +209,7 @@ if(loading){
             renderCell={renderCell}
           />
           </div>
-        {/* // )} */}
+        )}
       </div>
     </div>
   );
