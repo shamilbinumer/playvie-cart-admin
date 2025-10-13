@@ -18,7 +18,7 @@ const BannerList = () => {
   
   const columns = [
     { key: "index", title: "#" },
-    { key: "bannerImage", title: "Image" },
+    { key: "bannerImageWeb", title: "Image" },
     { key: "priority", title: "Priority" },
     { key: "startDate", title: "Start Date" },
     { key: "endDate", title: "End Date" },
@@ -57,7 +57,8 @@ const BannerList = () => {
       state: {
         bannerData: {
           bannerName: banner.bannerName,
-          bannerImage: banner.bannerImage,
+          bannerImageWeb: banner.bannerImageWeb,
+          bannerImageMobile: banner.bannerImageMobile,
           priority: banner.priority,
           isActive: banner.isActive,
           id: banner.id,
@@ -110,7 +111,7 @@ const BannerList = () => {
   const renderCell = (item, column, index) => {
     if (column.key === "index") return index + 1;
 
-    if (column.key === "bannerImage") {
+    if (column.key === "bannerImageWeb") {
       return (
         <div className="w-15 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
           {item[column.key] ? (

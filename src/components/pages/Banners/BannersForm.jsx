@@ -17,7 +17,8 @@ const BannersForm = () => {
 
   const [formData, setFormData] = useState({
     bannerName: "",
-    bannerImage: null,
+    bannerImageWeb: null,
+    bannerImageMobile: null,
     priority: "",
     isActive: true,
     startDate: null,
@@ -29,14 +30,15 @@ const BannersForm = () => {
   const [initialLoading, setInitialLoading] = useState(false);
 
   const API_KEY = 'de98e3de28eb4beeec9706734178ec3a';
-  
+
   // Load banner data from navigation state (edit mode)
   useEffect(() => {
     if (isEditMode && location.state?.bannerData) {
       const bannerData = location.state.bannerData;
       setFormData({
         bannerName: bannerData.bannerName || "",
-        bannerImage: bannerData.bannerImage || null,
+        bannerImageMobile: bannerData.bannerImageMobile || null,
+        bannerImageWeb: bannerData.bannerImageWeb || null,
         priority: bannerData.priority || "",
         isActive: bannerData.isActive || false,
         id: bannerData.id || "",
@@ -79,7 +81,24 @@ const BannersForm = () => {
     return null;
   };
 
-  const handleInputChange = (field, value) => {
+  /// image ratio validation
+  const validateImageDimensions = (imageFile, minWidth, minHeight) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        if (img.width < minWidth || img.height < minHeight) {
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      };
+      img.src = typeof imageFile === "string" ? imageFile : URL.createObjectURL(imageFile);
+    });
+  };
+
+
+  const handleInputChange = async (field, value) => {
+ 
     // Convert date from input format (YYYY-MM-DD) to storage format (DD-MM-YYYY)
     if (field === "startDate" || field === "endDate") {
       if (value && value.includes("-")) {
@@ -109,11 +128,30 @@ const BannersForm = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.bannerName.trim()) {
       newErrors.bannerName = "Banner name is required";
     }
-    
+
+    // Validate banner images
+    if (!formData.bannerImageWeb || !formData.bannerImageMobile) {
+      if (!formData.bannerImageWeb) {
+        newErrors.bannerImageWeb = "Web banner image is required";
+      }
+      if (!formData.bannerImageMobile) {
+        newErrors.bannerImageMobile = "Mobile banner image is required";
+      }
+    } else {
+      // Extra checks for empty strings or invalid data
+      if (typeof formData.bannerImageWeb === "string" && formData.bannerImageWeb.trim() === "") {
+        newErrors.bannerImageWeb = "Web banner image cannot be empty";
+      }
+      if (typeof formData.bannerImageMobile === "string" && formData.bannerImageMobile.trim() === "") {
+        newErrors.bannerImageMobile = "Mobile banner image cannot be empty";
+      }
+    }
+
+
     // Priority validation
     if (!formData.priority || formData.priority === "") {
       newErrors.priority = "Priority is required";
@@ -136,17 +174,10 @@ const BannersForm = () => {
       // Check if end date is before start date
       const startDate = parseDateString(formData.startDate);
       const endDate = parseDateString(formData.endDate);
-      
+
       if (startDate && endDate && endDate < startDate) {
         newErrors.endDate = "End date must be after or equal to start date";
       }
-    }
-    
-    // For banner image validation
-    if (!formData.bannerImage) {
-      newErrors.bannerImage = "Banner image is required";
-    } else if (typeof formData.bannerImage === 'string' && formData.bannerImage.trim() === '') {
-      newErrors.bannerImage = "Banner image is required";
     }
 
     setErrors(newErrors);
@@ -172,7 +203,7 @@ const BannersForm = () => {
       }
 
       const data = await res.json();
-      
+
       if (!data.success) {
         throw new Error(data.error?.message || "Image upload failed");
       }
@@ -189,37 +220,55 @@ const BannersForm = () => {
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
+    console.log(errors);
 
     try {
+      console.log("Submitting form with data:", formData);
+      if (!validateForm()) return;
+      console.log("Form is valid, proceeding...");
       setLoading(true);
 
-      let imageUrl = formData.bannerImage;
+      let webImageUrl = formData.bannerImageWeb;
+      let mobileImageUrl = formData.bannerImageMobile;
 
-      // Upload new image if it's a File or Blob object (not URL)
-      if (formData.bannerImage instanceof File || formData.bannerImage instanceof Blob) {
-        try {
-          imageUrl = await uploadToImgBB(formData.bannerImage);
-          console.log("Uploaded banner image URL:", imageUrl);
-        } catch (error) {
-          console.error("Error uploading banner image:", error);
-          throw new Error("Failed to upload banner image: " + error.message);
+      // Helper: upload if it's a new File/Blob
+      const uploadIfNeeded = async (image) => {
+        if (image instanceof File || image instanceof Blob) {
+          try {
+            return await uploadToImgBB(image);
+          } catch (error) {
+            console.error("Error uploading image:", error);
+            throw new Error("Failed to upload image: " + error.message);
+          }
         }
-      }
+        return image; // already a URL
+      };
 
-      // Ensure we have a valid URL before saving
-      if (!imageUrl || typeof imageUrl !== 'string' || imageUrl.trim() === '') {
-        throw new Error(`Invalid banner image URL`);
+      // Upload both images if needed
+      webImageUrl = await uploadIfNeeded(formData.bannerImageWeb);
+      mobileImageUrl = await uploadIfNeeded(formData.bannerImageMobile);
+
+      // Ensure both URLs are valid before saving
+      if (
+        !webImageUrl ||
+        typeof webImageUrl !== "string" ||
+        webImageUrl.trim() === "" ||
+        !mobileImageUrl ||
+        typeof mobileImageUrl !== "string" ||
+        mobileImageUrl.trim() === ""
+      ) {
+        throw new Error("Invalid banner image URLs");
       }
 
       const bannerData = {
         bannerName: formData.bannerName.trim(),
         priority: parseInt(formData.priority),
-        bannerImage: imageUrl,
+        bannerImageWeb: webImageUrl,
+        bannerImageMobile: mobileImageUrl,
         isActive: formData.isActive,
-        updatedAt: new Date(),
         startDate: formData.startDate,
         endDate: formData.endDate,
+        updatedAt: new Date(),
       };
 
       if (isEditMode) {
@@ -244,7 +293,7 @@ const BannersForm = () => {
 
         await setDoc(docRef, {
           ...bannerData,
-          id: docRef.id, 
+          id: docRef.id,
           createdAt: new Date(),
         });
 
@@ -257,14 +306,16 @@ const BannersForm = () => {
           toast: true,
         });
         navigate("/banners/banner-list");
-        // Reset form for create mode
+
+        // Reset form
         setFormData({
           bannerName: "",
-          bannerImage: null,
+          bannerImageWeb: null,
+          bannerImageMobile: null,
           priority: "",
           isActive: false,
+          startDate: null,
           endDate: null,
-          startDate: null,  
         });
       }
     } catch (error) {
@@ -279,6 +330,7 @@ const BannersForm = () => {
       setLoading(false);
     }
   };
+
 
   const handleCancel = () => {
     navigate("/banners/banner-list");
@@ -319,17 +371,38 @@ const BannersForm = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <SingleImageUpload
-              label="Banner Image"
-              placeholder="Upload banner image"
+              label="Banner Image Web"
+              placeholder="Upload banner image for web (min 1200x400px)"
               maxSizeMB={5}
               acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-              onImageSelect={(file) => handleInputChange("bannerImage", file)}
-              onImageRemove={() => handleInputChange("bannerImage", null)}
-              error={errors.bannerImage}
+              onImageSelect={(file) => handleInputChange("bannerImageWeb", file)}
+              onImageRemove={() => handleInputChange("bannerImageWeb", null)}
+              error={errors.bannerImageWeb}
               required
-              defaultImage={formData.bannerImage}
+              defaultImage={formData.bannerImageWeb}
+              dimentionValidation={{ width: 1200, height: 400 }}
+              exactDimensions={true}
             />
           </div>
+          <div>
+            <SingleImageUpload
+              label="Banner Image Mobile"
+              placeholder="Upload banner image mobile (min 600x800px)"
+              maxSizeMB={5}
+              acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+             onImageSelect={(file) => handleInputChange("bannerImageMobile", file)}
+              onImageRemove={() => handleInputChange("bannerImageMobile", null)}
+              error={errors.bannerImageMobile}
+              required
+              defaultImage={formData.bannerImageMobile}
+              dimentionValidation={{ width: 600, height: 800 }}
+              exactDimensions={true}
+            />
+          </div>
+        </div>
+
+        {/* Date fields */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Priority Field */}
           <TextInput
             label="Priority"
@@ -341,10 +414,6 @@ const BannersForm = () => {
             required
             min="0"
           />
-        </div>
-
-        {/* Date fields */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <TextInput
             label="Start Date"
             placeholder="Enter Date (e.g., DD/MM/YYYY)"
