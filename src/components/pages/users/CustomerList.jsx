@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react'
-import BreadCrumb from '../layout/BreadCrumb'
+import BreadCrumb from '../../layout/BreadCrumb'
 import { useNavigate } from 'react-router-dom';
-import DataTable from '../layout/DataTable';
-import { PageHeader } from '../common/PageHeader';
+import DataTable from '../../layout/DataTable';
+import { PageHeader } from '../../common/PageHeader';
 import { Switch } from '@mui/material';
-import AddButton from '../layout/AddButton';
+import AddButton from '../../layout/AddButton';
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
-import { db } from "../../firebase"; // Adjust path based on your structure
-import Preloader from '../common/Preloader';
+import { db } from "../../../firebase"; // Adjust path based on your structure
+import Preloader from '../../common/Preloader';
 import Swal from 'sweetalert2';
 
-const UsersList = () => {
+const CustomerList = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,12 +43,12 @@ const UsersList = () => {
     fetchUsers();
   }, []);
 
-  const columns = [
+  const columns = [w
     { key: "index", title: "#" },
     { key: "fullName", title: "Name" },
     { key: "email", title: "Email" },
     { key: "phone", title: "Phone" },
-    { key: "role", title: "Role" },
+
     { key: "isActive", title: "Active/Inactive" }
   ];
 
@@ -132,20 +132,13 @@ const UsersList = () => {
     <div>
       <BreadCrumb
         items={[
-          { label: "Users List", path: "#" },
+          { label: "Customer List", path: "#" },
         ]}
       />
       <div className="p-2">
         <PageHeader
-          title="Users List"
+          title="Customer List"
           className="border-b border-gray-200 pb-4"
-          actionButton={
-            <AddButton
-              title="Create New Admin"
-              onClick={() => navigate("/create-new-admin")}
-              disabled={loading}
-            />
-          }
         />
 
         {/* Data Table */}
@@ -168,4 +161,4 @@ const UsersList = () => {
   )
 }
 
-export default UsersList
+export default CustomerList

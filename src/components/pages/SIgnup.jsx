@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, Shield } from 'lucide-react';
 import TextInput from '../layout/TextInput';
-import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import Swal from 'sweetalert2';
 import { useSelector } from 'react-redux';
 import { Button } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { isAction } from '@reduxjs/toolkit';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 
 export default function AdminRegisterPage() {
-  const user = useSelector((state) => state.auth)
-  const navigate = useNavigate()
+  const user = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { adminId } = useParams(); 
+  
+  // Check if we're in edit mode
+  const isEditMode = !!adminId;
+  const editData = location.state?.adminData;
+  console.log(editData);
+  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -20,14 +28,29 @@ export default function AdminRegisterPage() {
     password: '',
     confirmPassword: '',
     superAdmin: false,
-    isActive:true
-
+    isActive: true
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Populate form data if in edit mode
+  useEffect(() => {
+    if (isEditMode && editData) {
+      setFormData({
+        firstName: editData.firstName || '',
+        lastName: editData.lastName || '',
+        email: editData.email || '',
+        phone: editData.phone || '',
+        password: editData.password || '',
+        confirmPassword: editData.password || '',
+        superAdmin: editData.superAdmin || false,
+        isActive: editData.isActive ?? true
+      });
+    }
+  }, [isEditMode, editData]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -91,63 +114,97 @@ export default function AdminRegisterPage() {
         phone: formData.phone,
         password: formData.password,
         superAdmin: formData.superAdmin,
-        role: 'admin',
-        createdAt: new Date(),
-        isActive:formData.isActive
+        isActive: formData.isActive
       };
 
-      const docRef = await doc(collection(db, "users"));
-      await setDoc(docRef, {
-        ...adminData,
-        id: docRef.id,
-      });
+      if (isEditMode) {
+        // Update existing admin
+        const adminRef = doc(db, "admins", adminId);
+        await updateDoc(adminRef, {
+          ...adminData,
+          updatedAt: new Date()
+        });
 
+        Swal.fire({
+          title: "Success!",
+          text: "Admin updated successfully.",
+          icon: "success",
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
 
-      Swal.fire({
-        title: "Success!",
-        text: "Admin registered successfully.",
-        icon: "success",
-        showConfirmButton: false,
-        timer: 2000,
-        toast: true,
-      });
+        // Navigate back after successful update
+        navigate(-1);
+      } else {
+        // Create new admin
+        const docRef = doc(collection(db, "admins"));
+        await setDoc(docRef, {
+          ...adminData,
+          id: docRef.id,
+          createdAt: new Date()
+        });
 
-      // Reset form
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        password: "",
-        confirmPassword: "",
-        superAdmin: false,
-        isActive:true
-      });
+        Swal.fire({
+          title: "Success!",
+          text: "Admin registered successfully.",
+          icon: "success",
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
+
+        // Reset form
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          password: "",
+          confirmPassword: "",
+          superAdmin: false,
+          isActive: true
+        });
+      }
     } catch (error) {
-      console.error("Error adding admin to Firestore:", error);
-      alert("Registration failed. Please try again.");
+      console.error("Error saving admin to Firestore:", error);
+      Swal.fire({
+        title: "Error!",
+        text: isEditMode ? "Update failed. Please try again." : "Registration failed. Please try again.",
+        icon: "error",
+        confirmButtonText: "OK"
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (!user?.user?.superAdmin) {
-    return <div className='w-full h-screen flex justify-center items-center'>
-      <div className='text-center'>  You Have Cannot Access This Page. This Page only can access super admin
-        <div><Button onClick={() => navigate(-1)}>Back</Button></div></div>
-    </div>
+    return (
+      <div className='w-full h-screen flex justify-center items-center'>
+        <div className='text-center'>
+          You Have Cannot Access This Page. This Page only can access super admin
+          <div>
+            <Button onClick={() => navigate(-1)}>Back</Button>
+          </div>
+        </div>
+      </div>
+    );
   }
+
   return (
-    <div className="min-h-screen  flex items-center justify-center p-4">
-      <div className="bg-whit w-full  p-8 space-y-8">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="bg-whit w-full p-8 space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-25 w-25  rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto h-25 w-25 rounded-full flex items-center justify-center mb-4">
             <img src="/Images/Playviecart.png" alt="" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Admin Registration</h2>
+          <h2 className="text-3xl font-bold text-gray-900">
+            {isEditMode ? 'Edit Admin' : 'Admin Registration'}
+          </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Create your administrator account
+            {isEditMode ? 'Update administrator account' : 'Create your administrator account'}
           </p>
         </div>
 
@@ -172,6 +229,7 @@ export default function AdminRegisterPage() {
               error={errors.lastName}
               required
             />
+
             {/* Email */}
             <TextInput
               label="Email Address"
@@ -206,10 +264,11 @@ export default function AdminRegisterPage() {
                   value={formData.password}
                   onChange={(e) => handleInputChange(e)}
                   name="password"
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 ${errors.password
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-blue-500'
-                    } bg-white hover:border-gray-400`}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 ${
+                    errors.password
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:border-blue-500'
+                  } bg-white hover:border-gray-400`}
                   placeholder="Create a strong password"
                 />
                 <button
@@ -241,10 +300,11 @@ export default function AdminRegisterPage() {
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange(e)}
                   name="confirmPassword"
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 ${errors.confirmPassword
-                    ? 'border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-blue-500'
-                    } bg-white hover:border-gray-400`}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 ${
+                    errors.confirmPassword
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:border-blue-500'
+                  } bg-white hover:border-gray-400`}
                   placeholder="Confirm your password"
                 />
                 <button
@@ -263,52 +323,61 @@ export default function AdminRegisterPage() {
                 <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
               )}
             </div>
+
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="superAdmin"
                 checked={formData.superAdmin}
-                onChange={handleInputChange}  // ✅ just pass the event
-                name="superAdmin"             // ✅ important: add name
+                onChange={handleInputChange}
+                name="superAdmin"
                 className="accent-[#81184e]"
               />
               <label htmlFor="superAdmin">Super Admin</label>
-
             </div>
-              <div className="flex items-center space-x-2">
+
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="isActive"
                 checked={formData.isActive}
-                onChange={handleInputChange}  // ✅ just pass the event
-                name="isActive"             // ✅ important: add name
+                onChange={handleInputChange}
+                name="isActive"
                 className="accent-[#81184e]"
               />
-              <label htmlFor="isActive">isActive</label>
-
+              <label htmlFor="isActive">Is Active</label>
             </div>
           </div>
 
-
-
-          {errors.agreeToTerms && <p className="text-xs text-red-600">{errors.agreeToTerms}</p>}
-
           {/* Submit Button */}
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="mt-10 group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[#81184e] hover:bg-[#61123b] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
-          >
-            {isSubmitting ? (
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Creating Account...
-              </div>
-            ) : (
-              'Create Admin Account'
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="mt-10 group relative flex-1 flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[#81184e] hover:bg-[#61123b] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  {isEditMode ? 'Updating...' : 'Creating Account...'}
+                </div>
+              ) : (
+                isEditMode ? 'Update Admin Account' : 'Create Admin Account'
+              )}
+            </button>
+
+            {isEditMode && (
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                disabled={isSubmitting}
+                className="mt-10 py-3 px-6 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200"
+              >
+                Cancel
+              </button>
             )}
-          </button>
+          </div>
         </div>
       </div>
     </div>

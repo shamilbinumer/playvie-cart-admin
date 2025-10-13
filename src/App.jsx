@@ -16,12 +16,14 @@ import BrandList from "./components/pages/Brand/BrandList";
 import BrandForm from "./components/pages/Brand/BrandForm";
 import ProductList from "./components/pages/Product/ProductList";
 import ProductForm from "./components/pages/Product/ProductForm";
-import UsersList from "./components/pages/UsersList";
+
 import AdminRegisterPage from "./components/pages/SIgnup";
 import Login from "./components/pages/Login";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import BannersList from "./components/pages/Banners/BannersList";
 import BannersForm from "./components/pages/Banners/BannersForm";
+import CustomerList from "./components/pages/users/CustomerList";
+import UsersList from "./components/pages/users/UsersList";
 
 function AppLayout() {
   const location = useLocation();
@@ -41,6 +43,7 @@ function AppLayout() {
           <Routes>
             {/* Public Routes */}
             <Route path="/create-new-admin" element={<AdminRegisterPage />} />
+              <Route path="/edit-admin/:adminId" element={<AdminRegisterPage />} />
             <Route path="/login" element={<Login />} />
 
             {/* Protected Routes */}
@@ -157,7 +160,15 @@ function AppLayout() {
               }
             />
             <Route
-              path="/users"
+              path="/users/customers"
+              element={
+                <ProtectedRoute>
+                  <CustomerList />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/users/admins"
               element={
                 <ProtectedRoute>
                   <UsersList />

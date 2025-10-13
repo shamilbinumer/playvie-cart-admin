@@ -1,11 +1,14 @@
 // utils/menuData.js
+// utils/menuData.js
 import {
   Settings,
   Folder,
   Tag,
   House,
   Box,
-  Image
+  Image,
+  Users,
+  UserCog
 } from "lucide-react";
 
 export const menuData = [
@@ -36,14 +39,14 @@ export const menuData = [
       },
     ]
   },
-   {
+  {
     id: 3,
     title: "Product",
     icon: Box,
     url: "/product-list",
     children: []
   },
-   {
+  {
     id: 4,
     title: "Banners",
     icon: Image,
@@ -60,10 +63,21 @@ export const menuData = [
   {
     id: 5,
     title: "Users",
-    icon: Box,
-    url: "/users",
-    children: []
+    icon: Users,
+    url: null,
+    children: [
+      {
+        id: 51,
+        title: "Customers",
+        icon: Users,
+        url: "/users/customers"
+      },
+      {
+        id: 52,
+        title: "Admins",
+        icon: UserCog,
+        url: "/users/admins"
+      },
+    ]
   },
-
-
 ];

@@ -105,7 +105,7 @@ const Login = () => {
 
         try {
             const q = query(
-                collection(db, "users"),
+                collection(db, "admins"),
                 where("email", "==", formData.email),
                 where("password", "==", formData.password)
             );
@@ -114,9 +114,6 @@ const Login = () => {
             if (!querySnapshot.empty) {
                 const userData = querySnapshot.docs[0].data();
                 console.log(userData);
-                
-
-                
                 const token = createToken({
                     email: userData.email,
                     role: userData.role || "admin",
@@ -124,13 +121,8 @@ const Login = () => {
                     firstName:userData.firstName,
                     userId:userData.id,
                     superAdmin:userData.superAdmin
-                });
-
-         
+                });         
                 localStorage.setItem("authToken", token);
-
-               
-
                 Swal.fire({
                     title: "Success!",
                     text: "Login successful.",
