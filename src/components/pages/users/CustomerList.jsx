@@ -43,7 +43,7 @@ const CustomerList = () => {
     fetchUsers();
   }, []);
 
-  const columns = [w
+  const columns = [
     { key: "index", title: "#" },
     { key: "fullName", title: "Name" },
     { key: "email", title: "Email" },
