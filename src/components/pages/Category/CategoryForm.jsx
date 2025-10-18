@@ -26,7 +26,7 @@ const CategoryForm = () => {
   const location = useLocation();
   const isEditMode = Boolean(categoryId);
 
-  const API_KEY = "YOUR_IMGBB_API_KEY"; // move to .env
+  const API_KEY = "de98e3de28eb4beeec9706734178ec3a"; // move to .env
   const navigate = useNavigate();
 
   // Load category data from navigation state (edit mode)
@@ -84,34 +84,38 @@ const CategoryForm = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+const uploadToImgBB = async (file) => {
+    if (!file) {
+      throw new Error("No file provided for upload");
+    }
 
-  // Upload image to imgbb (only if it's a File, not a URL)
-  const uploadToImgBB = async (fileOrUrl) => {
-    if (!fileOrUrl) return null;
-
-    // If it's already a URL (string), just return it
-    if (typeof fileOrUrl === "string") return fileOrUrl;
+    const formData = new FormData();
+    formData.append("image", file);
 
     try {
-      const fd = new FormData();
-      fd.append("image", fileOrUrl);
-
       const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
         method: "POST",
-        body: fd,
+        body: formData,
       });
 
-      const data = await res.json();
-
-      if (data && data.data && data.data.url) {
-        return data.data.url;
-      } else {
-        console.error("ImgBB upload failed:", data);
-        return null;
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
-    } catch (err) {
-      console.error("Error uploading to Imgbb:", err);
-      return null;
+
+      const data = await res.json();
+      
+      if (!data.success) {
+        throw new Error(data.error?.message || "Image upload failed");
+      }
+
+      if (!data.data?.url) {
+        throw new Error("No URL returned from image upload service");
+      }
+
+      return data.data.url;
+    } catch (error) {
+      console.error("ImgBB upload error:", error);
+      throw new Error(`Image upload failed: ${error.message}`);
     }
   };
 
@@ -123,7 +127,10 @@ const CategoryForm = () => {
 
       const bannerUrl = await uploadToImgBB(formData.bannerImage);
       const thumbnailUrl = await uploadToImgBB(formData.thumbnailImage);
-
+      console.log(bannerUrl);
+      console.log(thumbnailUrl);
+      
+      
       if (isEditMode) {
         const docRef = doc(db, "categories", categoryId);
         await updateDoc(docRef, {
@@ -204,7 +211,7 @@ const CategoryForm = () => {
           <SingleImageUpload
             label="Banner Image"
             placeholder="Upload banner image"
-            maxSizeMB={5}
+            maxSizeMB={3}
             acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
             onImageSelect={(file) => handleInputChange("bannerImage", file)}
             onImageRemove={() => handleInputChange("bannerImage", null)}
