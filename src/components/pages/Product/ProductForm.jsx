@@ -11,13 +11,14 @@ import SingleImageUpload from "../../layout/SingleImageUpload";
 import TextArea from "../../layout/TextArea";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Preloader from "../../common/Preloader";
+import BulkProductUpload from "./BulkUpload";
 
 const ProductForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { productId } = useParams();
   const isEditMode = Boolean(productId);
-  
+
   const [formData, setFormData] = useState({
     productName: "",
     productCode: "",
@@ -172,7 +173,7 @@ const ProductForm = () => {
         }
 
         const data = await res.json();
-        
+
         if (!data.success) {
           throw new Error(data.error?.message || "Image upload failed");
         }
@@ -249,7 +250,72 @@ const ProductForm = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  const handleBulkUpload = async (products) => {
+        try {
+          setLoading(true);
+          let successCount = 0;
+          let errorCount = 0;
+          const errors = [];
 
+          for (const product of products) {
+            try {
+              // Check for duplicate SKU
+              const productsRef = collection(db, "products");
+              const q = query(productsRef, where("skuCode", "==", product.skuCode));
+              const querySnapshot = await getDocs(q);
+
+              if (!querySnapshot.empty) {
+                errors.push(`SKU ${product.skuCode} already exists`);
+                errorCount++;
+                continue;
+              }
+
+              // Create new product
+              const docRef = doc(collection(db, "products"));
+              await setDoc(docRef, {
+                ...product,
+                productId: docRef.id,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+              });
+
+              successCount++;
+            } catch (error) {
+              errorCount++;
+              errors.push(`Failed to upload ${product.productName}: ${error.message}`);
+            }
+          }
+
+          // Show results
+          Swal.fire({
+            title: 'Bulk Upload Complete',
+            html: `
+        <div>
+          <p>Successfully uploaded: ${successCount}</p>
+          <p>Failed: ${errorCount}</p>
+          ${errors.length > 0 ? `<div style="max-height: 200px; overflow-y: auto; text-align: left; margin-top: 10px;">
+            <strong>Errors:</strong>
+            <ul>${errors.map(e => `<li>${e}</li>`).join('')}</ul>
+          </div>` : ''}
+        </div>
+      `,
+            icon: successCount > 0 ? 'success' : 'error',
+            confirmButtonText: 'OK'
+          });
+
+          if (successCount > 0) {
+            navigate('/product-list');
+          }
+        } catch (error) {
+          Swal.fire({
+            title: 'Error!',
+            text: 'Failed to process bulk upload',
+            icon: 'error',
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -282,7 +348,7 @@ const ProductForm = () => {
         console.error("Error uploading thumbnail:", error);
         throw new Error("Failed to upload thumbnail: " + error.message);
       }
-
+    
       // Upload product images
       const productImageUrls = [];
       for (const img of formData.productImages) {
@@ -359,7 +425,7 @@ const ProductForm = () => {
           toast: true,
         });
 
-         navigate('/product-list');
+        navigate('/product-list');
         // Reset form for create mode
         setFormData({
           productName: "",
@@ -378,7 +444,7 @@ const ProductForm = () => {
           isActive: true,
           oneRating: 0,
           twoRating: 0,
-          threeRating: 0, 
+          threeRating: 0,
           fourRating: 0,
           fiveRating: 0,
         });
@@ -415,6 +481,13 @@ const ProductForm = () => {
           { label: isEditMode ? "Edit Product" : "Add Product", path: "#" },
         ]}
       />
+      {!isEditMode && (
+        <BulkProductUpload
+          onUploadComplete={handleBulkUpload}
+          categories={categories}
+          brands={brands}
+        />
+      )}
       <FormContainer
         title={isEditMode ? "Edit Product" : "Add Product"}
         onCancel={handleCancel}
@@ -569,9 +642,9 @@ const ProductForm = () => {
         </div>
 
         <div className="flex items-center space-x-2">
-          <input 
-            type="checkbox" 
-            id="isActive" 
+          <input
+            type="checkbox"
+            id="isActive"
             checked={formData.isActive}
             onChange={(e) => handleInputChange("isActive", e.target.checked)}
             className="accent-[#81184e]"
