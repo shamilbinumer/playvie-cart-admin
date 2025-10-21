@@ -80,4 +80,25 @@ export const menuData = [
       },
     ]
   },
+  {
+    id: 6,
+    title: "Portfolio",
+    icon: Users,
+    url: null,
+    children: [
+      {
+        id: 61,
+        title: "service enquiry",
+        icon: Users,
+        url: "/enquiry/service"
+      },
+      {
+        id: 61,
+        title: "Gallery",
+        icon: Users,
+        url: "/enquiry/service"
+      },
+      
+    ]
+  },
 ];
