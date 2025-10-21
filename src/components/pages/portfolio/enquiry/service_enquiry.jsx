@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { PageHeader } from "../../common/PageHeader";
-import BreadCrumb from "../../layout/BreadCrumb";
-import DataTable from "../../layout/DataTable";
+import { PageHeader } from "../../../common/PageHeader";
+import BreadCrumb from "../../../layout/BreadCrumb";
+import DataTable from "../../../layout/DataTable";
 import { Eye, RefreshCw, Phone, Mail, MapPin, Package } from 'lucide-react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from "../../../firebase";
-import Preloader from "../../common/Preloader";
+import { db } from "../../../../firebase";
+import Preloader from "../../../common/Preloader";
 import Swal from "sweetalert2";
 
 const ServiceEnquiryList = () => {

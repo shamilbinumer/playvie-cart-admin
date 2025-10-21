@@ -24,7 +24,7 @@ import BannersList from "./components/pages/Banners/BannersList";
 import BannersForm from "./components/pages/Banners/BannersForm";
 import CustomerList from "./components/pages/users/CustomerList";
 import UsersList from "./components/pages/users/UsersList";
-import ServiceEnquiryList from "./components/pages/enquiry/service_enquiry";
+import ServiceEnquiryList from "./components/pages/portfolio/enquiry/service_enquiry";
 
 function AppLayout() {
   const location = useLocation();
