@@ -1,6 +1,6 @@
 import React from 'react'
 
-const galleryList = () => {
+const PLaySchoolGallery = () => {
   return (
     <div>
       
@@ -8,4 +8,4 @@ const galleryList = () => {
   )
 }
 
-export default galleryList
+export default PLaySchoolGallery

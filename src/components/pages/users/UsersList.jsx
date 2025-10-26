@@ -180,7 +180,8 @@ const handleEdit = (admin) => {
     <div>
       <BreadCrumb
         items={[
-          { label: "Users List", path: "#" },
+          { label: "Users", path: "#" },
+          { label: "Admins List", path: "#" },
         ]}
       />
       <div className="p-2">

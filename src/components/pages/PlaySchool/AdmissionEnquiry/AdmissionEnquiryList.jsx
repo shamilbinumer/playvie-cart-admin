@@ -8,7 +8,7 @@ import { db } from "../../../../firebase";
 import Preloader from "../../../common/Preloader";
 import Swal from "sweetalert2";
 
-const ServiceEnquiryList = () => {
+const AdmissionEnquiryList = () => {
   const [enquiries, setEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,7 +22,7 @@ const ServiceEnquiryList = () => {
       setLoading(true);
       setError(null);
 
-      const q = query(collection(db, 'service_enquiry'), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, 'admissionEnquiries'), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
       
       const enquiriesList = querySnapshot.docs.map((doc, index) => ({
@@ -43,10 +43,10 @@ const ServiceEnquiryList = () => {
 
   const columns = [
     { key: "index", title: "#" },
-    { key: "name", title: "Name" },
+    { key: "childName", title: "Name" },
     { key: "contactNo", title: "Contact" },
-    { key: "email", title: "Email" },
-    { key: "selectedServices", title: "Services" },
+    { key: "age", title: "Age" },
+    { key: "place", title: "Place" },
     { key: "createdAt", title: "Date" },
     { key: "actions", title: "Actions" },
   ];
@@ -193,32 +193,15 @@ const ServiceEnquiryList = () => {
     <>
       <BreadCrumb
         items={[
-          { label: "Portfolio", path: "#" },
-          { label: "Service Enquiry List", path: "#" },
+          { label: "Playschool Website", path: "#" },
+          { label: "Admission Enquiry List", path: "#" },
         ]}
       />
       <div className="p-2">
         <PageHeader
-          title="Service Enquiry List"
+          title="Admission Enquiry List"
           className="border-b border-gray-200 pb-4"
-          actionButton={
-            <button
-              onClick={fetchEnquiries}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-          }
         />
-
-        {/* Error State */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-            <p className="text-red-800 font-medium">{error}</p>
-          </div>
-        )}
 
         {/* Data Table */}
         {!loading && !error && (
@@ -229,22 +212,9 @@ const ServiceEnquiryList = () => {
             renderCell={renderCell}
           />
         )}
-
-        {/* Empty State */}
-        {!loading && !error && enquiries.length === 0 && (
-          <div className="bg-white rounded-lg shadow p-12 text-center mt-4">
-            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              No enquiries yet
-            </h3>
-            <p className="text-gray-500">
-              Enquiries will appear here once submitted
-            </p>
-          </div>
-        )}
       </div>
     </>
   );
 };
 
-export default ServiceEnquiryList;
+export default AdmissionEnquiryList;

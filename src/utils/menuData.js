@@ -8,7 +8,10 @@ import {
   Box,
   Image,
   Users,
-  UserCog
+  UserCog,
+  Globe,
+  BookOpenText,
+  Images
 } from "lucide-react";
 
 export const menuData = [
@@ -83,20 +86,47 @@ export const menuData = [
   {
     id: 6,
     title: "Portfolio",
-    icon: Users,
+    icon: Globe,
     url: null,
     children: [
       {
         id: 61,
-        title: "service enquiry",
-        icon: Users,
-        url: "/enquiry/service"
+        title: "Service Enquiry",
+        icon: BookOpenText,
+        url: "/portfolio/serviceEnquiry"
       },
       {
         id: 61,
         title: "Gallery",
-        icon: Users,
-        url: "/enquiry/service"
+        icon: Images,
+        url: "/portfolio/gallery"
+      },
+      
+    ]
+  },
+  {
+    id: 7,
+    title: "PlaySchool Website",
+    icon: Globe,
+    url: null,
+    children: [
+      {
+        id: 71,
+        title: "Admission Enquiry",
+        icon: BookOpenText,
+        url: "/playschool/admissionEnquiry"
+      },
+      {
+        id: 72,
+        title: "Gallery",
+        icon: Images,
+        url: "/playschool/galley"
+      },
+       {
+        id: 73,
+        title: "Franchise Enquiry",
+        icon: BookOpenText,
+        url: "/playschool/franchiseEnquiry"
       },
       
     ]

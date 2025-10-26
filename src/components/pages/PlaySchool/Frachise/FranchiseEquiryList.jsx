@@ -8,7 +8,7 @@ import { db } from "../../../../firebase";
 import Preloader from "../../../common/Preloader";
 import Swal from "sweetalert2";
 
-const ServiceEnquiryList = () => {
+const FranchiseEnquiryList = () => {
   const [enquiries, setEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -193,8 +193,8 @@ const ServiceEnquiryList = () => {
     <>
       <BreadCrumb
         items={[
-          { label: "Portfolio", path: "#" },
-          { label: "Service Enquiry List", path: "#" },
+          { label: "Service", path: "#" },
+          { label: "Enquiry List", path: "#" },
         ]}
       />
       <div className="p-2">
@@ -247,4 +247,4 @@ const ServiceEnquiryList = () => {
   );
 };
 
-export default ServiceEnquiryList;
+export default FranchiseEnquiryList;

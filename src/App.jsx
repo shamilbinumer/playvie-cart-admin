@@ -25,6 +25,9 @@ import BannersForm from "./components/pages/Banners/BannersForm";
 import CustomerList from "./components/pages/users/CustomerList";
 import UsersList from "./components/pages/users/UsersList";
 import ServiceEnquiryList from "./components/pages/portfolio/enquiry/service_enquiry";
+import AdmissionEnquiryList from "./components/pages/PlaySchool/AdmissionEnquiry/AdmissionEnquiryList";
+import PLaySchoolGallery from "./components/pages/PlaySchool/Gallery/Gallery";
+import FranchiseEnquiryList from "./components/pages/PlaySchool/Frachise/FranchiseEquiryList";
 
 function AppLayout() {
   const location = useLocation();
@@ -177,14 +180,45 @@ function AppLayout() {
               }
             />
              <Route
-              path="/enquiry/service"
+              path="/portfolio/serviceEnquiry"
               element={
                 <ProtectedRoute>
                   <ServiceEnquiryList />
                 </ProtectedRoute>
               }
             />
-
+              <Route
+              path="/portfolio/gallery"
+              element={
+                <ProtectedRoute>
+                  <galleryList/>
+                </ProtectedRoute>
+              }
+            />
+              <Route
+              path="/playschool/admissionEnquiry"
+              element={
+                <ProtectedRoute>
+                  <AdmissionEnquiryList />
+                </ProtectedRoute>
+              }
+            />
+              <Route
+              path="/playschool/galley"
+              element={
+                <ProtectedRoute>
+                  <PLaySchoolGallery />
+                </ProtectedRoute>
+              }
+            />
+              <Route
+              path="/playschool/franchiseEnquiry"
+              element={
+                <ProtectedRoute>
+                  <FranchiseEnquiryList />
+                </ProtectedRoute>
+              }
+            />
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>

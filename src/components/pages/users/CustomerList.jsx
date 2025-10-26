@@ -132,6 +132,7 @@ const CustomerList = () => {
     <div>
       <BreadCrumb
         items={[
+           { label: "Users", path: "#" },
           { label: "Customer List", path: "#" },
         ]}
       />
