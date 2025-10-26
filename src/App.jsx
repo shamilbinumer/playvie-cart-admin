@@ -26,8 +26,8 @@ import CustomerList from "./components/pages/users/CustomerList";
 import UsersList from "./components/pages/users/UsersList";
 import ServiceEnquiryList from "./components/pages/portfolio/enquiry/service_enquiry";
 import AdmissionEnquiryList from "./components/pages/PlaySchool/AdmissionEnquiry/AdmissionEnquiryList";
-import PLaySchoolGallery from "./components/pages/PlaySchool/Gallery/Gallery";
 import FranchiseEnquiryList from "./components/pages/PlaySchool/Frachise/FranchiseEquiryList";
+import PlaySchoolGallery from "./components/pages/PlaySchool/Gallery/Gallery";
 
 function AppLayout() {
   const location = useLocation();
@@ -207,7 +207,7 @@ function AppLayout() {
               path="/playschool/galley"
               element={
                 <ProtectedRoute>
-                  <PLaySchoolGallery />
+                  <PlaySchoolGallery/>
                 </ProtectedRoute>
               }
             />

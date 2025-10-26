@@ -1,6 +1,6 @@
 import React from 'react'
 
-const PLaySchoolGallery = () => {
+const PlaySchoolGallery = () => {
   return (
     <div>
       
@@ -8,4 +8,4 @@ const PLaySchoolGallery = () => {
   )
 }
 
-export default PLaySchoolGallery
+export default PlaySchoolGallery

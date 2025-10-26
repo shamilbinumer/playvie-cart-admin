@@ -52,9 +52,6 @@ const AdmissionEnquiryList = () => {
   ];
 
   const handleView = (enquiry) => {
-    const servicesHtml = enquiry.selectedServices
-      .map(service => `<span style="display: inline-block; background: #EBF5FF; color: #1E40AF; padding: 4px 12px; border-radius: 12px; margin: 4px; font-size: 13px;">${service}</span>`)
-      .join('');
 
     Swal.fire({
       title: '<strong>Enquiry Details</strong>',
@@ -63,25 +60,31 @@ const AdmissionEnquiryList = () => {
           <div style="margin-bottom: 15px;">
             <div style="display: flex; align-items: center; margin-bottom: 8px;">
               <span style="color: #6B7280; font-size: 14px; width: 100px;">Name:</span>
-              <span style="font-weight: 600; font-size: 15px;">${enquiry.name}</span>
+              <span style="font-weight: 600; font-size: 15px;">${enquiry.childName}</span>
             </div>
             <div style="display: flex; align-items: center; margin-bottom: 8px;">
               <span style="color: #6B7280; font-size: 14px; width: 100px;">Contact:</span>
-              <span style="font-weight: 600; font-size: 15px;">${enquiry.contactNo}</span>
+              <span style="font-weight: 600; font-size: 15px;">${enquiry.age}</span>
             </div>
             <div style="display: flex; align-items: center; margin-bottom: 8px;">
               <span style="color: #6B7280; font-size: 14px; width: 100px;">Email:</span>
-              <span style="font-weight: 600; font-size: 15px;">${enquiry.email}</span>
+              <span style="font-weight: 600; font-size: 15px;">${enquiry.contactNo}</span>
+            </div>
+             <div style="display: flex; align-items: center; margin-bottom: 8px;">
+              <span style="color: #6B7280; font-size: 14px; width: 100px;">Email:</span>
+              <span style="font-weight: 600; font-size: 15px;">${enquiry.parentName}</span>
+            </div>
+             <div style="display: flex; align-items: center; margin-bottom: 8px;">
+              <span style="color: #6B7280; font-size: 14px; width: 100px;">Email:</span>
+              <span style="font-weight: 600; font-size: 15px;">${enquiry.place}</span>
+            </div>
+             <div style="display: flex; align-items: center; margin-bottom: 8px;">
+              <span style="color: #6B7280; font-size: 14px; width: 100px;">Email:</span>
+              <span style="font-weight: 600; font-size: 15px;">${enquiry.pincode}</span>
             </div>
             <div style="display: flex; align-items: start; margin-bottom: 8px;">
               <span style="color: #6B7280; font-size: 14px; width: 100px;">Address:</span>
               <span style="font-weight: 600; font-size: 15px; flex: 1;">${enquiry.address}</span>
-            </div>
-          </div>
-          <div style="border-top: 1px solid #E5E7EB; padding-top: 15px; margin-top: 15px;">
-            <div style="color: #6B7280; font-size: 14px; margin-bottom: 10px;">Selected Services:</div>
-            <div style="margin-top: 8px;">
-              ${servicesHtml}
             </div>
           </div>
           <div style="border-top: 1px solid #E5E7EB; padding-top: 15px; margin-top: 15px;">
@@ -93,7 +96,7 @@ const AdmissionEnquiryList = () => {
       `,
       width: 600,
       confirmButtonText: 'Close',
-      confirmButtonColor: '#3B82F6',
+      confirmButtonColor: '#81184e',
     });
   };
 
@@ -118,43 +121,11 @@ const AdmissionEnquiryList = () => {
   const renderCell = (item, column, index) => {
     if (column.key === "index") return index + 1;
 
-    if (column.key === "selectedServices") {
-      return (
-        <div className="flex flex-wrap gap-1 max-w-xs">
-          {item.selectedServices.slice(0, 2).map((service, idx) => (
-            <span
-              key={idx}
-              className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium"
-            >
-              {service}
-            </span>
-          ))}
-          {item.selectedServices.length > 2 && (
-            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-              +{item.selectedServices.length - 2} more
-            </span>
-          )}
-        </div>
-      );
-    }
-
     if (column.key === "createdAt") {
       return (
         <span className="text-sm text-gray-600">
           {formatDate(item.createdAt)}
         </span>
-      );
-    }
-
-    if (column.key === "contactNo") {
-      return (
-        <span className="font-medium text-gray-900">{item.contactNo}</span>
-      );
-    }
-
-    if (column.key === "email") {
-      return (
-        <span className="text-sm text-gray-600 break-all">{item.email}</span>
       );
     }
 
