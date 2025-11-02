@@ -28,6 +28,8 @@ import ServiceEnquiryList from "./components/pages/portfolio/enquiry/service_enq
 import AdmissionEnquiryList from "./components/pages/PlaySchool/AdmissionEnquiry/AdmissionEnquiryList";
 import FranchiseEnquiryList from "./components/pages/PlaySchool/Frachise/FranchiseEquiryList";
 import PlaySchoolGallery from "./components/pages/PlaySchool/Gallery/Gallery";
+import OrderList from "./components/pages/Orders/OrderList";
+import OrderDetails from "./components/pages/Orders/OrderDetails";
 
 function AppLayout() {
   const location = useLocation();
@@ -216,6 +218,22 @@ function AppLayout() {
               element={
                 <ProtectedRoute>
                   <FranchiseEnquiryList />
+                </ProtectedRoute>
+              }
+            />
+              <Route
+              path="/orders/order-list"
+              element={
+                <ProtectedRoute>
+                  <OrderList />
+                </ProtectedRoute>
+              }
+            />
+              <Route
+              path="/orders/order-list/order-details/:orderId"
+              element={
+                <ProtectedRoute>
+                  <OrderDetails />
                 </ProtectedRoute>
               }
             />

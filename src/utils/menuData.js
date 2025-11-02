@@ -11,7 +11,8 @@ import {
   UserCog,
   Globe,
   BookOpenText,
-  Images
+  Images,
+  ListOrderedIcon
 } from "lucide-react";
 
 export const menuData = [
@@ -50,16 +51,22 @@ export const menuData = [
     children: []
   },
   {
-    id: 4,
+    id: 41,
     title: "Banners",
     icon: Image,
+    url: "/banners/banner-list"
+  },
+  {
+    id: 44,
+    title: "Orders",
+    icon: ListOrderedIcon,
     url: null,
     children: [
       {
         id: 41,
-        title: "Banners",
-        icon: Image,
-        url: "/banners/banner-list"
+        title: "Orders",
+        icon: ListOrderedIcon,
+        url: "/orders/order-list"
       },
     ]
   },
@@ -101,7 +108,7 @@ export const menuData = [
         icon: Images,
         url: "/portfolio/gallery"
       },
-      
+
     ]
   },
   {
@@ -122,13 +129,13 @@ export const menuData = [
         icon: Images,
         url: "/playschool/galley"
       },
-       {
+      {
         id: 73,
         title: "Franchise Enquiry",
         icon: BookOpenText,
         url: "/playschool/franchiseEnquiry"
       },
-      
+
     ]
   },
 ];

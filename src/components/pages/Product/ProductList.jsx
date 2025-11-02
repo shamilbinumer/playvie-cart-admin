@@ -20,11 +20,11 @@ const ProductList = () => {
     try {
       const querySnapshot = await getDocs(collection(db, "products"));
       const productData = querySnapshot.docs.map((doc, index) => ({
-      ...doc.data()
+        ...doc.data()
       }));
       setProducts(productData);
       console.log(productData);
-      
+
     } catch (error) {
       console.error("Error fetching products:", error);
       Swal.fire({
@@ -52,30 +52,30 @@ const ProductList = () => {
   // 🔹 Edit handler
   const handleEdit = (product) => {
     console.log("Editing product:", product);
-    
-    navigate(`/edit-product/${product.id}`,{
+
+    navigate(`/edit-product/${product.productId}`, {
       state: {
         productData: {
-        productName: product.productName,
-        productCode: product.productCode ,
-        skuCode: product.skuCode,
-        shortDescription: product.shortDescription,
-        longDescription: product.longDescription,
-        mrp: product.mrp,
-        salesPrice: product.salesPrice,
-        purchaseRate: product.purchaseRate,
-        handlingTime: product.handlingTime,
-        categoryId: product.categoryId,
-        brandId: product.brandId,
-        thumbnail: product.thumbnail,
-        productImages: product.productImages,
-        isActive: product.isActive,
-        fiveRating: product.fiveRating ,
-        fourRating: product.fourRating ,
-        threeRating: product.threeRating ,
-        twoRating: product.twoRating ,
-        oneRating: product.oneRating,
-        id: product.id,
+          productName: product.productName,
+          productCode: product.productCode,
+          skuCode: product.skuCode,
+          shortDescription: product.shortDescription,
+          longDescription: product.longDescription,
+          mrp: product.mrp,
+          salesPrice: product.salesPrice,
+          purchaseRate: product.purchaseRate,
+          handlingTime: product.handlingTime,
+          categoryId: product.categoryId,
+          brandId: product.brandId,
+          thumbnail: product.thumbnail,
+          productImages: product.productImages,
+          isActive: product.isActive,
+          fiveRating: product.fiveRating,
+          fourRating: product.fourRating,
+          threeRating: product.threeRating,
+          twoRating: product.twoRating,
+          oneRating: product.oneRating,
+          id: product.id,
         }
       }
     });
@@ -183,9 +183,9 @@ const ProductList = () => {
 
     return item[column.key] || "-";
   };
-if(loading){
-  return <Preloader/>;
-}
+  if (loading) {
+    return <Preloader />;
+  }
   return (
     <div className="relative">
       <div>
@@ -199,18 +199,18 @@ if(loading){
         />
 
         {loading ? (
-          <div><Preloader/></div>
+          <div><Preloader /></div>
         )
-         : (
-          <div className="p-2">
-            <DataTable
-            columns={columns}
-            data={products}
-            actions={actions}
-            renderCell={renderCell}
-          />
-          </div>
-        )}
+          : (
+            <div className="p-2">
+              <DataTable
+                columns={columns}
+                data={products}
+                actions={actions}
+                renderCell={renderCell}
+              />
+            </div>
+          )}
       </div>
     </div>
   );
