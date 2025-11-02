@@ -22,8 +22,6 @@ const BulkProductUpload = ({ onUploadComplete, categories, brands }) => {
         handlingTime: '3',
         categoryName: 'Category Name',
         brandName: 'Brand Name',
-        thumbnailUrl: 'https://example.com/image.jpg',
-        productImageUrls: 'https://example.com/img1.jpg,https://example.com/img2.jpg',
         isActive: 'TRUE'
       }
     ];
@@ -100,27 +98,34 @@ const BulkProductUpload = ({ onUploadComplete, categories, brands }) => {
       errors.push(`Row ${rowNum}: Valid handling time is required`);
     }
 
-    // Validate category
+    // Validate category with better error handling
+    const categoryName = row.categoryName?.toString().trim();
+    console.log(`Row ${rowNum} - Looking for category: "${categoryName}"`);
+    console.log('Available categories:', categories.map(c => c.label));
+    
     const category = categories.find(c => 
-      c.label.toLowerCase() === row.categoryName?.toLowerCase()
+      c.label.toLowerCase().trim() === categoryName?.toLowerCase()
     );
-    if (!category) {
-      errors.push(`Row ${rowNum}: Category "${row.categoryName}" not found`);
+    
+    if (!categoryName) {
+      errors.push(`Row ${rowNum}: Category name is required`);
+    } else if (!category) {
+      errors.push(`Row ${rowNum}: Category "${categoryName}" not found. Available: ${categories.map(c => c.label).join(', ')}`);
     }
 
-    // Validate brand
+    // Validate brand with better error handling
+    const brandName = row.brandName?.toString().trim();
+    console.log(`Row ${rowNum} - Looking for brand: "${brandName}"`);
+    console.log('Available brands:', brands.map(b => b.label));
+    
     const brand = brands.find(b => 
-      b.label.toLowerCase() === row.brandName?.toLowerCase()
+      b.label.toLowerCase().trim() === brandName?.toLowerCase()
     );
-    if (!brand) {
-      errors.push(`Row ${rowNum}: Brand "${row.brandName}" not found`);
-    }
-
-    if (!row.thumbnailUrl?.trim()) {
-      errors.push(`Row ${rowNum}: Thumbnail URL is required`);
-    }
-    if (!row.productImageUrls?.trim()) {
-      errors.push(`Row ${rowNum}: At least one product image URL is required`);
+    
+    if (!brandName) {
+      errors.push(`Row ${rowNum}: Brand name is required`);
+    } else if (!brand) {
+      errors.push(`Row ${rowNum}: Brand "${brandName}" not found. Available: ${brands.map(b => b.label).join(', ')}`);
     }
 
     return { 
@@ -151,11 +156,6 @@ const BulkProductUpload = ({ onUploadComplete, categories, brands }) => {
         const validation = validateRow(row, index);
         
         if (validation.isValid) {
-          const imageUrls = row.productImageUrls
-            .split(',')
-            .map(url => url.trim())
-            .filter(url => url);
-
           validProducts.push({
             productName: row.productName.trim(),
             productCode: row.productCode.trim(),
@@ -170,8 +170,8 @@ const BulkProductUpload = ({ onUploadComplete, categories, brands }) => {
             categoryName: row.categoryName.trim(),
             brandId: validation.brandId,
             brandName: row.brandName.trim(),
-            thumbnail: row.thumbnailUrl.trim(),
-            productImages: imageUrls,
+            thumbnail: null, // No thumbnail in bulk upload
+            productImages: [], // No images in bulk upload
             isActive: row.isActive?.toString().toUpperCase() === 'TRUE',
             oneRating: 0,
             twoRating: 0,
@@ -308,10 +308,9 @@ const BulkProductUpload = ({ onUploadComplete, categories, brands }) => {
                 <p className="font-medium">Important Notes:</p>
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Category Name and Brand Name must match exactly with existing categories/brands</li>
-                  <li>All image URLs must be valid and accessible</li>
-                  <li>Multiple product image URLs should be comma-separated</li>
                   <li>isActive field accepts TRUE or FALSE</li>
                   <li>All numeric fields (MRP, Sales Price, etc.) must be valid numbers</li>
+                  <li><strong>Note:</strong> Products uploaded via bulk upload will not have images. You'll need to add images manually later.</li>
                 </ul>
               </div>
             </div>

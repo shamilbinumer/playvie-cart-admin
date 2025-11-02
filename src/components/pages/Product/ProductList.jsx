@@ -95,7 +95,7 @@ const ProductList = () => {
 
     if (confirm.isConfirmed) {
       try {
-        await deleteDoc(doc(db, "products", product.id));
+        await deleteDoc(doc(db, "products", product.productId));
         Swal.fire({
           icon: "success",
           title: "Deleted!",
@@ -105,6 +105,7 @@ const ProductList = () => {
         });
         fetchProducts(); // refresh list
       } catch (error) {
+        console.error("Error deleting product:", error);
         Swal.fire({
           icon: "error",
           title: "Error",
