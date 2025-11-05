@@ -31,6 +31,10 @@ import PlaySchoolGallery from "./components/pages/PlaySchool/Gallery/Gallery";
 import OrderList from "./components/pages/Orders/OrderList";
 import OrderDetails from "./components/pages/Orders/OrderDetails";
 
+import GalleryList from "./components/pages/portfolio/gallery/galleryList";
+import GalleryForm from "./components/pages/portfolio/gallery/GalleryForm";
+import PortFolioGalleryForm from "./components/pages/portfolio/gallery/GalleryForm";
+
 function AppLayout() {
   const location = useLocation();
 
@@ -193,7 +197,17 @@ function AppLayout() {
               path="/portfolio/gallery"
               element={
                 <ProtectedRoute>
-                  <galleryList/>
+                  <GalleryList/>
+            
+                </ProtectedRoute>
+              }
+            />
+               <Route
+              path="/portfolio/gallery/galleryForm"
+              element={
+                <ProtectedRoute>
+                  <PortFolioGalleryForm/>
+            
                 </ProtectedRoute>
               }
             />
