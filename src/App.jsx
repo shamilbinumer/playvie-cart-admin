@@ -27,13 +27,12 @@ import UsersList from "./components/pages/users/UsersList";
 import ServiceEnquiryList from "./components/pages/portfolio/enquiry/service_enquiry";
 import AdmissionEnquiryList from "./components/pages/PlaySchool/AdmissionEnquiry/AdmissionEnquiryList";
 import FranchiseEnquiryList from "./components/pages/PlaySchool/Frachise/FranchiseEquiryList";
-import PlaySchoolGallery from "./components/pages/PlaySchool/Gallery/Gallery";
 import OrderList from "./components/pages/Orders/OrderList";
 import OrderDetails from "./components/pages/Orders/OrderDetails";
-
 import GalleryList from "./components/pages/portfolio/gallery/galleryList";
-import GalleryForm from "./components/pages/portfolio/gallery/GalleryForm";
 import PortFolioGalleryForm from "./components/pages/portfolio/gallery/GalleryForm";
+import PlayschoolGalleyList from "./components/pages/PlaySchool/Gallery/GalleryList";
+import PlayschoolGalleryForm from "./components/pages/PlaySchool/Gallery/galleryForm";
 
 function AppLayout() {
   const location = useLocation();
@@ -220,10 +219,26 @@ function AppLayout() {
               }
             />
               <Route
-              path="/playschool/galley"
+              path="/playschool/galley-list"
               element={
                 <ProtectedRoute>
-                  <PlaySchoolGallery/>
+                  <PlayschoolGalleyList/>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/playschool/add-gallrey"
+              element={
+                <ProtectedRoute>
+                  <PlayschoolGalleryForm />
+                </ProtectedRoute>
+              }
+            />
+               <Route
+              path="/playschool/edit-gallery/:galleryId"
+              element={
+                <ProtectedRoute>
+                  <PlayschoolGalleryForm />
                 </ProtectedRoute>
               }
             />

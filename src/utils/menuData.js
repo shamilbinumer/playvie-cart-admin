@@ -103,7 +103,7 @@ export const menuData = [
         url: "/portfolio/serviceEnquiry"
       },
       {
-        id: 61,
+        id: 62,
         title: "Gallery",
         icon: Images,
         url: "/portfolio/gallery"
@@ -127,7 +127,7 @@ export const menuData = [
         id: 72,
         title: "Gallery",
         icon: Images,
-        url: "/playschool/galley"
+        url: "/playschool/galley-list"
       },
       {
         id: 73,
@@ -135,7 +135,6 @@ export const menuData = [
         icon: BookOpenText,
         url: "/playschool/franchiseEnquiry"
       },
-
     ]
   },
 ];
