@@ -33,6 +33,7 @@ import GalleryList from "./components/pages/portfolio/gallery/galleryList";
 import PortFolioGalleryForm from "./components/pages/portfolio/gallery/GalleryForm";
 import PlayschoolGalleyList from "./components/pages/PlaySchool/Gallery/GalleryList";
 import PlayschoolGalleryForm from "./components/pages/PlaySchool/Gallery/galleryForm";
+import Inventory from "./components/pages/Inventory/Inventory";
 
 function AppLayout() {
   const location = useLocation();
@@ -48,11 +49,11 @@ function AppLayout() {
       {!isNoLayout && <Navbar />}
       <div style={{ display: "flex", minHeight: "100vh" }}>
         {!isNoLayout && <Sidebar />}
-        <div style={{ flex: 1 }} className={!isNoLayout ? "pt-16" : ""}>
+        <div style={{ flex: 1 }} className={!isNoLayout ? "pt-14" : ""}>
           <Routes>
             {/* Public Routes */}
             <Route path="/create-new-admin" element={<AdminRegisterPage />} />
-              <Route path="/edit-admin/:adminId" element={<AdminRegisterPage />} />
+            <Route path="/edit-admin/:adminId" element={<AdminRegisterPage />} />
             <Route path="/login" element={<Login />} />
 
             {/* Protected Routes */}
@@ -152,7 +153,7 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-              <Route
+            <Route
               path="/banners/add-banner"
               element={
                 <ProtectedRoute>
@@ -160,7 +161,7 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-             <Route
+            <Route
               path="/banners/edit-banner/:bannerId"
               element={
                 <ProtectedRoute>
@@ -176,7 +177,7 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-             <Route
+            <Route
               path="/users/admins"
               element={
                 <ProtectedRoute>
@@ -184,7 +185,7 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-             <Route
+            <Route
               path="/portfolio/serviceEnquiry"
               element={
                 <ProtectedRoute>
@@ -192,25 +193,25 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-              <Route
+            <Route
               path="/portfolio/gallery"
               element={
                 <ProtectedRoute>
-                  <GalleryList/>
-            
+                  <GalleryList />
+
                 </ProtectedRoute>
               }
             />
-               <Route
+            <Route
               path="/portfolio/gallery/galleryForm"
               element={
                 <ProtectedRoute>
-                  <PortFolioGalleryForm/>
-            
+                  <PortFolioGalleryForm />
+
                 </ProtectedRoute>
               }
             />
-              <Route
+            <Route
               path="/playschool/admissionEnquiry"
               element={
                 <ProtectedRoute>
@@ -218,11 +219,11 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-              <Route
+            <Route
               path="/playschool/galley-list"
               element={
                 <ProtectedRoute>
-                  <PlayschoolGalleyList/>
+                  <PlayschoolGalleyList />
                 </ProtectedRoute>
               }
             />
@@ -234,7 +235,7 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-               <Route
+            <Route
               path="/playschool/edit-gallery/:galleryId"
               element={
                 <ProtectedRoute>
@@ -242,7 +243,7 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-              <Route
+            <Route
               path="/playschool/franchiseEnquiry"
               element={
                 <ProtectedRoute>
@@ -250,7 +251,7 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-              <Route
+            <Route
               path="/orders/order-list"
               element={
                 <ProtectedRoute>
@@ -258,11 +259,19 @@ function AppLayout() {
                 </ProtectedRoute>
               }
             />
-              <Route
+            <Route
               path="/orders/order-list/order-details/:orderId"
               element={
                 <ProtectedRoute>
                   <OrderDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/inventory"
+              element={
+                <ProtectedRoute>
+                  <Inventory />
                 </ProtectedRoute>
               }
             />

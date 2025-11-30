@@ -31,7 +31,7 @@ const BreadCrumb = ({ items = [], showHome = true, showBack = true, separator = 
   }
   
   return (
-    <nav className={`flex items-center space-x-2 px-2 text-sm ${className}`} aria-label="Breadcrumb">
+    <nav className={`flex items-center space-x-2 px-2 text-sm ${className} pt-2`} aria-label="Breadcrumb">
       <div className="flex items-center space-x-2">
         {/* Back Button */}
         {showBack && (

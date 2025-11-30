@@ -12,7 +12,8 @@ import {
   Globe,
   BookOpenText,
   Images,
-  ListOrderedIcon
+  ListOrderedIcon,
+  PackagePlus
 } from "lucide-react";
 
 export const menuData = [
@@ -48,6 +49,13 @@ export const menuData = [
     title: "Product",
     icon: Box,
     url: "/product-list",
+    children: []
+  },
+  {
+    id: 33,
+    title: "Inventory",
+    icon: PackagePlus,
+    url: "/inventory",
     children: []
   },
   {
