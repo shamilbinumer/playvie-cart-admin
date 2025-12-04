@@ -197,7 +197,7 @@ const BlogForm = () => {
         });
       }
 
-      navigate("/master/blog-list");
+      navigate("/portfolio/blog/Blog");
     } catch (error) {
       console.error("Error saving blog post:", error);
       Swal.fire("Error!", "Something went wrong.", "error");

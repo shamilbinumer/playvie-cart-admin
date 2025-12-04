@@ -116,6 +116,18 @@ export const menuData = [
         icon: Images,
         url: "/portfolio/gallery"
       },
+      {
+        id: 63,
+        title: "Blog",
+        icon: Images,
+        url: "/portfolio/blog/Blog"
+      },
+       {
+        id: 64,
+        title: "Service",
+        icon: Images,
+        url:"/portfolio/service/ServiceList"
+      },
 
     ]
   },
