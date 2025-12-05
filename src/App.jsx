@@ -34,6 +34,7 @@ import PortFolioGalleryForm from "./components/pages/portfolio/gallery/GalleryFo
 import PlayschoolGalleyList from "./components/pages/PlaySchool/Gallery/GalleryList";
 import PlayschoolGalleryForm from "./components/pages/PlaySchool/Gallery/galleryForm";
 import Inventory from "./components/pages/Inventory/Inventory";
+import CustomerDetails from "./components/pages/CustomerDetails/CustomerDetails";
 
 function AppLayout() {
   const location = useLocation();
@@ -174,6 +175,14 @@ function AppLayout() {
               element={
                 <ProtectedRoute>
                   <CustomerList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users/customers/:customerName/:customerId"
+              element={
+                <ProtectedRoute>
+                  <CustomerDetails />
                 </ProtectedRoute>
               }
             />

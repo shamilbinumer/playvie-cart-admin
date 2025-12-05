@@ -26,6 +26,7 @@ const ProductForm = () => {
     shortDescription: "",
     longDescription: "",
     mrp: "",
+    stock: 1,
     salesPrice: "",
     purchaseRate: "",
     handlingTime: "",
@@ -60,6 +61,7 @@ const ProductForm = () => {
         shortDescription: productData.shortDescription || "",
         longDescription: productData.longDescription || "",
         mrp: productData.mrp || "",
+        stock: productData.stock || 1,
         salesPrice: productData.salesPrice || "",
         purchaseRate: productData.purchaseRate || "",
         handlingTime: productData.handlingTime || "",
@@ -251,45 +253,45 @@ const ProductForm = () => {
     return Object.keys(newErrors).length === 0;
   };
   const handleBulkUpload = async (products) => {
+    try {
+      setLoading(true);
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      for (const product of products) {
         try {
-          setLoading(true);
-          let successCount = 0;
-          let errorCount = 0;
-          const errors = [];
+          // Check for duplicate SKU
+          const productsRef = collection(db, "products");
+          const q = query(productsRef, where("skuCode", "==", product.skuCode));
+          const querySnapshot = await getDocs(q);
 
-          for (const product of products) {
-            try {
-              // Check for duplicate SKU
-              const productsRef = collection(db, "products");
-              const q = query(productsRef, where("skuCode", "==", product.skuCode));
-              const querySnapshot = await getDocs(q);
-
-              if (!querySnapshot.empty) {
-                errors.push(`SKU ${product.skuCode} already exists`);
-                errorCount++;
-                continue;
-              }
-
-              // Create new product
-              const docRef = doc(collection(db, "products"));
-              await setDoc(docRef, {
-                ...product,
-                productId: docRef.id,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-              });
-
-              successCount++;
-            } catch (error) {
-              errorCount++;
-              errors.push(`Failed to upload ${product.productName}: ${error.message}`);
-            }
+          if (!querySnapshot.empty) {
+            errors.push(`SKU ${product.skuCode} already exists`);
+            errorCount++;
+            continue;
           }
 
-          // Show results
-          Swal.fire({
-            title: 'Bulk Upload Complete',
-            html: `
+          // Create new product
+          const docRef = doc(collection(db, "products"));
+          await setDoc(docRef, {
+            ...product,
+            productId: docRef.id,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push(`Failed to upload ${product.productName}: ${error.message}`);
+        }
+      }
+
+      // Show results
+      Swal.fire({
+        title: 'Bulk Upload Complete',
+        html: `
         <div>
           <p>Successfully uploaded: ${successCount}</p>
           <p>Failed: ${errorCount}</p>
@@ -299,23 +301,23 @@ const ProductForm = () => {
           </div>` : ''}
         </div>
       `,
-            icon: successCount > 0 ? 'success' : 'error',
-            confirmButtonText: 'OK'
-          });
+        icon: successCount > 0 ? 'success' : 'error',
+        confirmButtonText: 'OK'
+      });
 
-          if (successCount > 0) {
-            navigate('/product-list');
-          }
-        } catch (error) {
-          Swal.fire({
-            title: 'Error!',
-            text: 'Failed to process bulk upload',
-            icon: 'error',
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
+      if (successCount > 0) {
+        navigate('/product-list');
+      }
+    } catch (error) {
+      Swal.fire({
+        title: 'Error!',
+        text: 'Failed to process bulk upload',
+        icon: 'error',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -348,7 +350,7 @@ const ProductForm = () => {
         console.error("Error uploading thumbnail:", error);
         throw new Error("Failed to upload thumbnail: " + error.message);
       }
-    
+
       // Upload product images
       const productImageUrls = [];
       for (const img of formData.productImages) {
@@ -388,6 +390,7 @@ const ProductForm = () => {
         threeRating: formData.threeRating,
         fourRating: formData.fourRating,
         fiveRating: formData.fiveRating,
+        stock: formData.stock,
         updatedAt: serverTimestamp(),
       };
 
@@ -443,6 +446,7 @@ const ProductForm = () => {
           productImages: [],
           isActive: true,
           oneRating: 0,
+          stock: 1,
           twoRating: 0,
           threeRating: 0,
           fourRating: 0,

@@ -9,7 +9,7 @@ import { collection, getDocs, doc, updateDoc, getDoc } from "firebase/firestore"
 import { db } from "../../../firebase";
 import Preloader from '../../common/Preloader';
 import Swal from 'sweetalert2';
-import { ShoppingCart } from 'lucide-react';
+import { Eye, ShoppingCart } from 'lucide-react';
 import * as XLSX from "xlsx";
 
 
@@ -58,7 +58,8 @@ const CustomerList = () => {
     { key: "email", title: "Email" },
     { key: "phone", title: "Phone" },
     { key: "cart", title: "Cart" },
-    { key: "isActive", title: "Active/Inactive" }
+    { key: "isActive", title: "Active/Inactive" },
+    { key: "action", title: "Action" }
   ];
 
   // Fetch cart products from Firebase
@@ -145,6 +146,9 @@ const CustomerList = () => {
 
     if (column.key === "fullName") {
       return `${item.firstName || ''} ${item.lastName || ''}`.trim() || "-";
+    }
+    if (column.key === "action") {
+      return <Eye className='text-green-700 cursor-pointer' onClick={()=>navigate(`/users/customers/${item.firstName || ''}/${item.id}`)}  />;
     }
 
     if (column.key === "cart") {
@@ -301,17 +305,17 @@ Playvie Cart Team`;
           title="Customer List"
           className="border-b border-gray-200 pb-4"
           actionButton={
-             <Button
-            onClick={handleDownloadExcel}
-            sx={{
-              backgroundColor: '#217346',   // Excel green
-              color: 'white',
-              textTransform: 'none',
-              '&:hover': { backgroundColor: '#1b5e38' }, // darker Excel green
-            }}
-          >
-            Download Details Excel 
-          </Button>
+            <Button
+              onClick={handleDownloadExcel}
+              sx={{
+                backgroundColor: '#217346',   // Excel green
+                color: 'white',
+                textTransform: 'none',
+                '&:hover': { backgroundColor: '#1b5e38' }, // darker Excel green
+              }}
+            >
+              Download Details Excel
+            </Button>
           }
         />
         {/* <div className="flex justify-end mb-4">

@@ -1,10 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { collection, deleteDoc, doc, getDocs } from "firebase/firestore";
-import { db } from "../../../firebase"; // adjust path as per your project
+import { 
+  collection, 
+  deleteDoc, 
+  doc, 
+  getDocs, 
+  query, 
+  orderBy, 
+  limit, 
+  startAfter,
+  getCountFromServer 
+} from "firebase/firestore";
+import { db } from "../../../firebase";
 import BreadCrumb from "../../layout/BreadCrumb";
 import { PageHeader } from "../../common/PageHeader";
 import AddButton from "../../layout/AddButton";
-import DataTable from "../../layout/DataTable";
+import ServerPaginatedDataTable from "../../layout/ServerPaginatedDataTable";
 import { SquarePen, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
@@ -14,17 +24,79 @@ const ProductList = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tableLoading, setTableLoading] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // Store document snapshots for pagination
+  const [lastDocs, setLastDocs] = useState({});
 
-  // 🔹 Fetch products from Firestore
-  const fetchProducts = async () => {
+  // Calculate total pages
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // 🔹 Fetch total count
+  const fetchTotalCount = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "products"));
-      const productData = querySnapshot.docs.map((doc, index) => ({
+      const collectionRef = collection(db, "products");
+      const snapshot = await getCountFromServer(collectionRef);
+      setTotalItems(snapshot.data().count);
+    } catch (error) {
+      console.error("Error fetching count:", error);
+    }
+  };
+
+  // 🔹 Fetch products from Firestore with pagination
+  const fetchProducts = async (page = 1, perPage = itemsPerPage) => {
+    try {
+      setTableLoading(true);
+      const collectionRef = collection(db, "products");
+      
+      let q;
+      
+      if (page === 1) {
+        // First page query
+        q = query(
+          collectionRef,
+          orderBy("productName"), // Change orderBy field as needed
+          limit(perPage)
+        );
+      } else {
+        // Subsequent pages - use last document from previous page
+        const lastDoc = lastDocs[page - 1];
+        if (!lastDoc) {
+          // If we don't have the last doc, refetch from beginning
+          setCurrentPage(1);
+          return;
+        }
+        
+        q = query(
+          collectionRef,
+          orderBy("productName"),
+          startAfter(lastDoc),
+          limit(perPage)
+        );
+      }
+      
+      const querySnapshot = await getDocs(q);
+      
+      // Store the last document for next page
+      if (querySnapshot.docs.length > 0) {
+        setLastDocs(prev => ({
+          ...prev,
+          [page]: querySnapshot.docs[querySnapshot.docs.length - 1]
+        }));
+      }
+      
+      const productData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        productId: doc.id,
         ...doc.data()
       }));
+      
       setProducts(productData);
-      console.log(productData);
-
     } catch (error) {
       console.error("Error fetching products:", error);
       Swal.fire({
@@ -33,13 +105,33 @@ const ProductList = () => {
         text: "Failed to load product list.",
       });
     } finally {
+      setTableLoading(false);
       setLoading(false);
     }
   };
 
+  // Initial load
   useEffect(() => {
-    fetchProducts();
+    const initializeData = async () => {
+      await fetchTotalCount();
+      await fetchProducts(1);
+    };
+    initializeData();
   }, []);
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    fetchProducts(page);
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+    setLastDocs({}); // Clear cached documents
+    fetchProducts(1, newItemsPerPage);
+  };
 
   const columns = [
     { key: "index", title: "#" },
@@ -103,7 +195,17 @@ const ProductList = () => {
           timer: 1500,
           showConfirmButton: false,
         });
-        fetchProducts(); // refresh list
+        
+        // Refresh count and current page
+        await fetchTotalCount();
+        
+        // If current page is now empty and not the first page, go back one page
+        if (products.length === 1 && currentPage > 1) {
+          setCurrentPage(currentPage - 1);
+          fetchProducts(currentPage - 1);
+        } else {
+          fetchProducts(currentPage);
+        }
       } catch (error) {
         console.error("Error deleting product:", error);
         Swal.fire({
@@ -127,6 +229,7 @@ const ProductList = () => {
       icon: Trash2,
     },
   ];
+
   const renderCell = (item, column, index) => {
     if (column.key === "index") return index + 1;
 
@@ -150,10 +253,11 @@ const ProductList = () => {
     if (column.key === "isActive") {
       return (
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${item[column.key] === true
-            ? "bg-green-100 text-green-800"
-            : "bg-red-100 text-red-800"
-            }`}
+          className={`px-2 py-1 rounded-full text-xs font-medium ${
+            item[column.key] === true
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }`}
         >
           {item[column.key] ? "Active" : "Inactive"}
         </span>
@@ -167,8 +271,9 @@ const ProductList = () => {
             <button
               key={i}
               onClick={() => action.handler(item)}
-              className={`flex items-center justify-center rounded transition-colors ${action.label === "Edit" ? "text-green-600" : ""
-                } ${action.label === "Delete" ? "text-red-600" : ""}`}
+              className={`flex items-center justify-center rounded transition-colors ${
+                action.label === "Edit" ? "text-green-600" : ""
+              } ${action.label === "Delete" ? "text-red-600" : ""}`}
             >
               {action.icon && (
                 <span className="mr-1">
@@ -183,9 +288,11 @@ const ProductList = () => {
 
     return item[column.key] || "-";
   };
+
   if (loading) {
     return <Preloader />;
   }
+
   return (
     <div className="relative">
       <div>
@@ -198,19 +305,21 @@ const ProductList = () => {
           }
         />
 
-        {loading ? (
-          <div><Preloader /></div>
-        )
-          : (
-            <div className="p-2">
-              <DataTable
-                columns={columns}
-                data={products}
-                actions={actions}
-                renderCell={renderCell}
-              />
-            </div>
-          )}
+        <div className="p-2">
+          <ServerPaginatedDataTable
+            columns={columns}
+            data={products}
+            actions={actions}
+            renderCell={renderCell}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            loading={tableLoading}
+          />
+        </div>
       </div>
     </div>
   );
