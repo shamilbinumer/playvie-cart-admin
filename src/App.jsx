@@ -35,6 +35,10 @@ import PlayschoolGalleyList from "./components/pages/PlaySchool/Gallery/GalleryL
 import PlayschoolGalleryForm from "./components/pages/PlaySchool/Gallery/galleryForm";
 import Inventory from "./components/pages/Inventory/Inventory";
 import CustomerDetails from "./components/pages/CustomerDetails/CustomerDetails";
+import BlogForm from "./components/pages/portfolio/blog/blog";
+import BlogList from "./components/pages/portfolio/blog/BlogList";
+import ServiceForm from "./components/pages/portfolio/services/ServiceForm";
+import ServiceList from "./components/pages/portfolio/services/ServiceList";
 
 function AppLayout() {
   const location = useLocation();
@@ -273,6 +277,40 @@ function AppLayout() {
               element={
                 <ProtectedRoute>
                   <OrderDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portfolio/blog/Blog"
+              element={
+                <ProtectedRoute>
+                  <BlogList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/portfolio/blog/BlogForm"
+              element={
+                <ProtectedRoute>
+                  <BlogForm />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/portfolio/service/ServiceForm"
+              element={
+                <ProtectedRoute>
+                  <ServiceForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portfolio/service/ServiceList"
+              element={
+                <ProtectedRoute>
+                  <ServiceList />
                 </ProtectedRoute>
               }
             />
