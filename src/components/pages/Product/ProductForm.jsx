@@ -599,6 +599,7 @@ const ProductForm = () => {
             placeholder="Select category"
             error={errors.categoryId}
             required
+            multiple
           />
           <SearchableDropdown
             label="Brand"
