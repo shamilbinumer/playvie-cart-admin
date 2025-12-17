@@ -211,7 +211,7 @@ const uploadToImgBB = async (file) => {
           <SingleImageUpload
             label="Banner Image"
             placeholder="Upload banner image"
-            maxSizeMB={3}
+            maxSizeKB={100}
             acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
             onImageSelect={(file) => handleInputChange("bannerImage", file)}
             onImageRemove={() => handleInputChange("bannerImage", null)}
@@ -223,7 +223,7 @@ const uploadToImgBB = async (file) => {
           <SingleImageUpload
             label="Thumbnail Image"
             placeholder="Upload thumbnail image"
-            maxSizeMB={3}
+            maxSizeKB={100}
             acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
             onImageSelect={(file) => handleInputChange("thumbnailImage", file)}
             onImageRemove={() => handleInputChange("thumbnailImage", null)}

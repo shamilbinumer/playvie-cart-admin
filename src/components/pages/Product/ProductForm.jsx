@@ -12,6 +12,7 @@ import TextArea from "../../layout/TextArea";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Preloader from "../../common/Preloader";
 import BulkProductUpload from "./BulkUpload";
+import ProductPreview from "./ProductPreview";
 
 const ProductForm = () => {
   const navigate = useNavigate();
@@ -656,6 +657,7 @@ const ProductForm = () => {
           />
           <label htmlFor="isActive">Is Active</label>
         </div>
+        <ProductPreview formData={formData} />
       </FormContainer>
     </>
   );

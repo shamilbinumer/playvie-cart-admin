@@ -373,14 +373,14 @@ const BannersForm = () => {
             <SingleImageUpload
               label="Banner Image Web"
               placeholder="Upload banner image for web (min 1200x400px)"
-              maxSizeMB={5}
+              maxSizeKB={500}
               acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
               onImageSelect={(file) => handleInputChange("bannerImageWeb", file)}
               onImageRemove={() => handleInputChange("bannerImageWeb", null)}
               error={errors.bannerImageWeb}
               required
               defaultImage={formData.bannerImageWeb}
-              dimentionValidation={{ width: 1200, height: 400 }}
+              // dimentionValidation={{ width: 1200, height: 400 }}
               exactDimensions={true}
             />
           </div>
@@ -388,14 +388,14 @@ const BannersForm = () => {
             <SingleImageUpload
               label="Banner Image Mobile"
               placeholder="Upload banner image mobile (min 600x800px)"
-              maxSizeMB={5}
+              maxSizeKB={500}
               acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
              onImageSelect={(file) => handleInputChange("bannerImageMobile", file)}
               onImageRemove={() => handleInputChange("bannerImageMobile", null)}
               error={errors.bannerImageMobile}
               required
               defaultImage={formData.bannerImageMobile}
-              dimentionValidation={{ width: 600, height: 800 }}
+              // dimentionValidation={{ width: 600, height: 800 }}
               exactDimensions={true}
             />
           </div>
