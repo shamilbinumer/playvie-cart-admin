@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, AlertCircle, Loader2 } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
+
 
 const SingleImageUpload = ({
   label = 'Upload Image',
@@ -13,7 +15,8 @@ const SingleImageUpload = ({
   defaultImage,
   error: propError = '',
   dimentionValidation = null,
-  exactDimensions = false // New prop to enforce exact dimensions
+  exactDimensions = false ,
+  disabled = false
 }) => {
   const [image, setImage] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -112,12 +115,12 @@ const SingleImageUpload = ({
       try {
         // Simple compression simulation (in real app, use imageCompression library)
         console.log('Would compress image here');
-        // const options = {
-        //   maxSizeMB: maxSizeKB / 1024,
-        //   maxWidthOrHeight: 1024,
-        //   useWebWorker: true,
-        // };
-        // finalFile = await imageCompression(file, options);
+        const options = {
+          maxSizeMB: maxSizeKB / 1024,
+          maxWidthOrHeight: 1024,
+          useWebWorker: true,
+        };
+        finalFile = await imageCompression(file, options);
       } catch (err) {
         setError('Error compressing image');
         setLoading(false);
@@ -185,6 +188,7 @@ const SingleImageUpload = ({
           accept={acceptedTypes.join(',')}
           onChange={handleFileSelect}
           className="hidden"
+          disabled={disabled}
         />
 
         <div className="flex flex-col items-center space-y-1">

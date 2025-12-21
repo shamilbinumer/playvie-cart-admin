@@ -123,9 +123,9 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="lg:ml-0">
         {/* Dashboard Content */}
-        <main className="p-6">
+        <main className="p-1">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-3">
             {stats.map((stat, index) => (
               <div key={index} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between">
@@ -142,7 +142,7 @@ const Dashboard = () => {
           </div>
 
           {/* Orders Chart */}
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6 ">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Monthly Orders</h2>
             {monthlyOrderData.length > 0 ? (
               <BarChart

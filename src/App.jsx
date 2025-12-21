@@ -10,8 +10,8 @@ import Navbar from "./components/common/Navbar";
 import Dashboard from "./components/pages/Dashboard";
 import Sidebar from "./components/common/Sidebar";
 import NotFound from "./components/pages/NotFound";
-import CategoryList from "./components/pages/Category/CategoryList";
-import CategoryForm from "./components/pages/Category/CategoryForm";
+import CategoryList from "./components/pages/AgeBasedCategory/AgeBasedCategoryList";
+import CategoryForm from "./components/pages/AgeBasedCategory/AgeBasedCategoryForm";
 import BrandList from "./components/pages/Brand/BrandList";
 import BrandForm from "./components/pages/Brand/BrandForm";
 import ProductList from "./components/pages/Product/ProductList";
@@ -39,6 +39,10 @@ import BlogForm from "./components/pages/portfolio/blog/blog";
 import BlogList from "./components/pages/portfolio/blog/BlogList";
 import ServiceForm from "./components/pages/portfolio/services/ServiceForm";
 import ServiceList from "./components/pages/portfolio/services/ServiceList";
+import MainCategoryList from "./components/pages/MainCategory/MainCategoryList";
+import MainCategoryForm from "./components/pages/MainCategory/MainCategoryForm";
+import RecomentedForYouForm from "./components/pages/Offers/RecomentedForYou/RecomentedForYouForm";
+import RecomentedForYouList from "./components/pages/Offers/RecomentedForYou/RecomentedForYouList";
 
 function AppLayout() {
   const location = useLocation();
@@ -62,266 +66,57 @@ function AppLayout() {
             <Route path="/login" element={<Login />} />
 
             {/* Protected Routes */}
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Navigate to="/dashboard" replace />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/master/category-list"
-              element={
-                <ProtectedRoute>
-                  <CategoryList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/master/add-category"
-              element={
-                <ProtectedRoute>
-                  <CategoryForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/master/edit-category/:categoryId"
-              element={
-                <ProtectedRoute>
-                  <CategoryForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/master/brand-list"
-              element={
-                <ProtectedRoute>
-                  <BrandList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/master/add-brand"
-              element={
-                <ProtectedRoute>
-                  <BrandForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/master/edit-brand/:brandId"
-              element={
-                <ProtectedRoute>
-                  <BrandForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/product-list"
-              element={
-                <ProtectedRoute>
-                  <ProductList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/add-product"
-              element={
-                <ProtectedRoute>
-                  <ProductForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/edit-product/:productId"
-              element={
-                <ProtectedRoute>
-                  <ProductForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/banners/banner-list"
-              element={
-                <ProtectedRoute>
-                  <BannersList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/banners/add-banner"
-              element={
-                <ProtectedRoute>
-                  <BannersForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/banners/edit-banner/:bannerId"
-              element={
-                <ProtectedRoute>
-                  <BannersForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users/customers"
-              element={
-                <ProtectedRoute>
-                  <CustomerList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users/customers/:customerName/:customerId"
-              element={
-                <ProtectedRoute>
-                  <CustomerDetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users/admins"
-              element={
-                <ProtectedRoute>
-                  <UsersList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/portfolio/serviceEnquiry"
-              element={
-                <ProtectedRoute>
-                  <ServiceEnquiryList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/portfolio/gallery"
-              element={
-                <ProtectedRoute>
-                  <GalleryList />
+            <Route path="/" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            {/* Category */}
+            <Route path="/master/age-based-category-list" element={<ProtectedRoute><CategoryList /></ProtectedRoute>} />
+            <Route path="/master/add-age-based-category" element={<ProtectedRoute><CategoryForm /></ProtectedRoute>} />
+            <Route path="/master/edit-age-based-category/:categoryId" element={<ProtectedRoute><CategoryForm /></ProtectedRoute>} />
+            {/* Main Category */}
+            <Route path="/master/category-list" element={<ProtectedRoute><MainCategoryList /></ProtectedRoute>} />
+            <Route path="/master/add-category" element={<ProtectedRoute><MainCategoryForm /></ProtectedRoute>} />
+            <Route path="/master/edit-category/:categoryId" element={<ProtectedRoute><MainCategoryForm /></ProtectedRoute>} />
+            {/* Brand */}
+            <Route path="/master/brand-list" element={<ProtectedRoute><BrandList /></ProtectedRoute>} />
+            <Route path="/master/add-brand" element={<ProtectedRoute><BrandForm /></ProtectedRoute>} />
+            <Route path="/master/edit-brand/:brandId" element={<ProtectedRoute><BrandForm /></ProtectedRoute>} />
+            {/* Product */}
+            <Route path="/product-list" element={<ProtectedRoute><ProductList /></ProtectedRoute>} />
+            <Route path="/add-product" element={<ProtectedRoute><ProductForm /></ProtectedRoute>} />
+            <Route path="/view-product/:productId" element={<ProtectedRoute><ProductForm /></ProtectedRoute>} />
+            <Route path="/edit-product/:productId" element={<ProtectedRoute><ProductForm /></ProtectedRoute>} />
+            {/* Banners */}
+            <Route path="/banners/banner-list" element={<ProtectedRoute><BannersList /></ProtectedRoute>} />
+            <Route path="/banners/add-banner" element={<ProtectedRoute><BannersForm /></ProtectedRoute>} />
+            <Route path="/banners/edit-banner/:bannerId" element={<ProtectedRoute><BannersForm /></ProtectedRoute>} />
+            {/* Users */}
+            <Route path="/users/customers" element={<ProtectedRoute><CustomerList /></ProtectedRoute>} />
+            <Route path="/users/customers/:customerName/:customerId" element={<ProtectedRoute><CustomerDetails /></ProtectedRoute>} />
+            <Route path="/users/admins" element={<ProtectedRoute><UsersList /></ProtectedRoute>} />
+            {/* Portfolio */}
+            <Route path="/portfolio/serviceEnquiry" element={<ProtectedRoute><ServiceEnquiryList /></ProtectedRoute>} />
+            <Route path="/portfolio/gallery" element={<ProtectedRoute><GalleryList /></ProtectedRoute>} />
+            <Route path="/portfolio/gallery/galleryForm" element={<ProtectedRoute><PortFolioGalleryForm /></ProtectedRoute>} />
+            <Route path="/portfolio/blog/Blog" element={<ProtectedRoute><BlogList /></ProtectedRoute>} />
+            <Route path="/portfolio/blog/BlogForm" element={<ProtectedRoute><BlogForm /></ProtectedRoute>} />
+            <Route path="/portfolio/service/ServiceForm" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
+            <Route path="/portfolio/service/ServiceList" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
+            {/* PlaySchool Website */}
+            <Route path="/playschool/admissionEnquiry" element={<ProtectedRoute><AdmissionEnquiryList /></ProtectedRoute>} />
+            <Route path="/playschool/galley-list" element={<ProtectedRoute><PlayschoolGalleyList /></ProtectedRoute>} />
+            <Route path="/playschool/add-gallrey" element={<ProtectedRoute><PlayschoolGalleryForm /></ProtectedRoute>} />
+            <Route path="/playschool/edit-gallery/:galleryId" element={<ProtectedRoute><PlayschoolGalleryForm /></ProtectedRoute>} />
+            <Route path="/playschool/franchiseEnquiry" element={<ProtectedRoute><FranchiseEnquiryList /></ProtectedRoute>} />
+            {/* Orders */}
+            <Route path="/orders/order-list" element={<ProtectedRoute><OrderList /></ProtectedRoute>} />
+            <Route path="/orders/order-list/order-details/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+            {/* Inventory */}
+            <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+            {/* Offers */}
+            <Route path="/offers/recommended-for-you" element={<ProtectedRoute><RecomentedForYouList/></ProtectedRoute>} />
+            <Route path="/offers/add-recommended-for-you" element={<ProtectedRoute><RecomentedForYouForm /></ProtectedRoute>} />
+            <Route path="/recommended-for-you/edit-recommended-for-you/:recomentedForYouId" element={<ProtectedRoute><RecomentedForYouForm /></ProtectedRoute>} />
 
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/portfolio/gallery/galleryForm"
-              element={
-                <ProtectedRoute>
-                  <PortFolioGalleryForm />
-
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/playschool/admissionEnquiry"
-              element={
-                <ProtectedRoute>
-                  <AdmissionEnquiryList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/playschool/galley-list"
-              element={
-                <ProtectedRoute>
-                  <PlayschoolGalleyList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/playschool/add-gallrey"
-              element={
-                <ProtectedRoute>
-                  <PlayschoolGalleryForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/playschool/edit-gallery/:galleryId"
-              element={
-                <ProtectedRoute>
-                  <PlayschoolGalleryForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/playschool/franchiseEnquiry"
-              element={
-                <ProtectedRoute>
-                  <FranchiseEnquiryList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/orders/order-list"
-              element={
-                <ProtectedRoute>
-                  <OrderList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/orders/order-list/order-details/:orderId"
-              element={
-                <ProtectedRoute>
-                  <OrderDetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/portfolio/blog/Blog"
-              element={
-                <ProtectedRoute>
-                  <BlogList />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/portfolio/blog/BlogForm"
-              element={
-                <ProtectedRoute>
-                  <BlogForm />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/portfolio/service/ServiceForm"
-              element={
-                <ProtectedRoute>
-                  <ServiceForm />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/portfolio/service/ServiceList"
-              element={
-                <ProtectedRoute>
-                  <ServiceList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/inventory"
-              element={
-                <ProtectedRoute>
-                  <Inventory />
-                </ProtectedRoute>
-              }
-            />
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>

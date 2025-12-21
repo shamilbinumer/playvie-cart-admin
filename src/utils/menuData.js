@@ -13,7 +13,9 @@ import {
   BookOpenText,
   Images,
   ListOrderedIcon,
-  PackagePlus
+  PackagePlus,
+  Percent,
+  Package
 } from "lucide-react";
 
 export const menuData = [
@@ -25,16 +27,28 @@ export const menuData = [
     children: []
   },
   {
+    id: 44,
+    title: "Orders",
+    icon: ListOrderedIcon,
+    url: "/orders/order-list"
+  },
+  {
     id: 2,
     title: "Master Data",
     icon: Settings,
     url: null,
     children: [
-      {
-        id: 21,
+       {
+        id: 23,
         title: "Category",
         icon: Folder,
         url: "/master/category-list"
+      },
+      {
+        id: 21,
+        title: "Age Based Category",
+        icon: Folder,
+        url: "/master/age-based-category-list"
       },
       {
         id: 22,
@@ -66,18 +80,19 @@ export const menuData = [
   },
   {
     id: 44,
-    title: "Orders",
-    icon: ListOrderedIcon,
-    url: null,
+    title: "Manage Offers",
+    icon: Percent,
+    url:null,
     children: [
       {
-        id: 41,
-        title: "Orders",
-        icon: ListOrderedIcon,
-        url: "/orders/order-list"
-      },
+        id: 441,
+        title: "Recommended Products",
+        icon: Package,
+        url: "/offers/recommended-for-you"
+      }
     ]
   },
+  
   {
     id: 5,
     title: "Users",

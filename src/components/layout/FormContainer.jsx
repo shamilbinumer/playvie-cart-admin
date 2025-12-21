@@ -5,8 +5,8 @@ const FormContainer = ({
   children,
   onCancel,
   onSubmit,
-  cancelText = "Cancel",
-  submitText = "Submit",
+  cancelText = null,
+  submitText = null,
 }) => {
   return (
     <div className=" mx-auto p-1 pb-8">
@@ -21,7 +21,7 @@ const FormContainer = ({
 
         {/* Actions */}
         <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 pr-5">
-          {onCancel && (
+          {onCancel && cancelText && (
             <button
               type="button"
               onClick={onCancel}
@@ -30,7 +30,7 @@ const FormContainer = ({
               {cancelText}
             </button>
           )}
-          {onSubmit && (
+          {onSubmit && submitText && (
             <button
               type="button"
               onClick={onSubmit}

@@ -13,6 +13,7 @@ const MultipleImageUpload = ({
   className = "",
   placeholder = "Click to upload or drag and drop images here",
   defaultImages = [],
+  disabled = false
 }) => {
   const [images, setImages] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -152,7 +153,7 @@ const MultipleImageUpload = ({
           onChange={handleFileSelect}
           className="hidden"
           required={required}
-          disabled={images.length >= maxImages}
+          disabled={images.length >= maxImages||disabled}
         />
 
         <div className="flex flex-col items-center space-y-1">

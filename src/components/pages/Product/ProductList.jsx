@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { 
-  collection, 
-  deleteDoc, 
-  doc, 
-  getDocs, 
-  query, 
-  orderBy, 
-  limit, 
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
   startAfter,
-  getCountFromServer 
+  getCountFromServer
 } from "firebase/firestore";
 import { db } from "../../../firebase";
 import BreadCrumb from "../../layout/BreadCrumb";
 import { PageHeader } from "../../common/PageHeader";
 import AddButton from "../../layout/AddButton";
 import ServerPaginatedDataTable from "../../layout/ServerPaginatedDataTable";
-import { SquarePen, Trash2 } from "lucide-react";
+import { Eye, SquarePen, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import Preloader from "../../common/Preloader";
@@ -25,12 +25,12 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
+
   // Store document snapshots for pagination
   const [lastDocs, setLastDocs] = useState({});
 
@@ -53,9 +53,9 @@ const ProductList = () => {
     try {
       setTableLoading(true);
       const collectionRef = collection(db, "products");
-      
+
       let q;
-      
+
       if (page === 1) {
         // First page query
         q = query(
@@ -71,7 +71,7 @@ const ProductList = () => {
           setCurrentPage(1);
           return;
         }
-        
+
         q = query(
           collectionRef,
           orderBy("productName"),
@@ -79,9 +79,9 @@ const ProductList = () => {
           limit(perPage)
         );
       }
-      
+
       const querySnapshot = await getDocs(q);
-      
+
       // Store the last document for next page
       if (querySnapshot.docs.length > 0) {
         setLastDocs(prev => ({
@@ -89,13 +89,13 @@ const ProductList = () => {
           [page]: querySnapshot.docs[querySnapshot.docs.length - 1]
         }));
       }
-      
+
       const productData = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         productId: doc.id,
         ...doc.data()
       }));
-      
+
       setProducts(productData);
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -143,8 +143,6 @@ const ProductList = () => {
 
   // 🔹 Edit handler
   const handleEdit = (product) => {
-    console.log("Editing product:", product);
-
     navigate(`/edit-product/${product.productId}`, {
       state: {
         productData: {
@@ -195,10 +193,10 @@ const ProductList = () => {
           timer: 1500,
           showConfirmButton: false,
         });
-        
+
         // Refresh count and current page
         await fetchTotalCount();
-        
+
         // If current page is now empty and not the first page, go back one page
         if (products.length === 1 && currentPage > 1) {
           setCurrentPage(currentPage - 1);
@@ -217,11 +215,47 @@ const ProductList = () => {
     }
   };
 
+  const handleViewProduct = (product) => {
+    navigate(`/view-product/${product.productId}`, {
+      state: {
+        viewMode: true,
+        productData: {
+          productName: product.productName,
+          productCode: product.productCode,
+          skuCode: product.skuCode,
+          shortDescription: product.shortDescription,
+          longDescription: product.longDescription,
+          mrp: product.mrp,
+          salesPrice: product.salesPrice,
+          purchaseRate: product.purchaseRate,
+          handlingTime: product.handlingTime,
+          categoryId: product.categoryId,
+          brandId: product.brandId,
+          thumbnail: product.thumbnail,
+          productImages: product.productImages,
+          isActive: product.isActive,
+          fiveRating: product.fiveRating,
+          fourRating: product.fourRating,
+          threeRating: product.threeRating,
+          twoRating: product.twoRating,
+          oneRating: product.oneRating,
+          id: product.id,
+        }
+      }
+    });
+  }
+
   const actions = [
+  
     {
       label: "Edit",
       handler: handleEdit,
       icon: SquarePen,
+    },
+      {
+      label: "View",
+      handler: handleViewProduct,
+      icon: Eye,
     },
     {
       label: "Delete",
@@ -253,11 +287,10 @@ const ProductList = () => {
     if (column.key === "isActive") {
       return (
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${
-            item[column.key] === true
-              ? "bg-green-100 text-green-800"
-              : "bg-red-100 text-red-800"
-          }`}
+          className={`px-2 py-1 rounded-full text-xs font-medium ${item[column.key] === true
+            ? "bg-green-100 text-green-800"
+            : "bg-red-100 text-red-800"
+            }`}
         >
           {item[column.key] ? "Active" : "Inactive"}
         </span>
@@ -271,9 +304,8 @@ const ProductList = () => {
             <button
               key={i}
               onClick={() => action.handler(item)}
-              className={`flex items-center justify-center rounded transition-colors ${
-                action.label === "Edit" ? "text-green-600" : ""
-              } ${action.label === "Delete" ? "text-red-600" : ""}`}
+              className={`flex items-center justify-center rounded transition-colors ${action.label === "Edit" ? "text-green-600" : ""
+                } ${action.label === "Delete" ? "text-red-600" : ""} ${action.label === "View" ? "text-yellow-600" : ""}`}
             >
               {action.icon && (
                 <span className="mr-1">

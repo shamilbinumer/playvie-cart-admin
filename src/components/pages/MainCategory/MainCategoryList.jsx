@@ -10,7 +10,7 @@ import { db } from "../../../firebase";
 import Swal from "sweetalert2";
 import Preloader from "../../common/Preloader";
 
-const CategoryList = () => {
+const MainCategoryList = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,7 @@ const CategoryList = () => {
         setLoading(true);
         setError(null);
 
-        const querySnapshot = await getDocs(collection(db, "categories"));
+        const querySnapshot = await getDocs(collection(db, "main-category"));
         const categoryList = querySnapshot.docs.map((doc, index) => ({
           id: doc.id,
           ...doc.data(),
@@ -207,4 +207,4 @@ const CategoryList = () => {
   );
 };
 
-export default CategoryList;
+export default MainCategoryList;

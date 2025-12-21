@@ -19,6 +19,7 @@ const ProductForm = () => {
   const location = useLocation();
   const { productId } = useParams();
   const isEditMode = Boolean(productId);
+  const viewMode = location.state?.viewMode || false;
 
   const [formData, setFormData] = useState({
     productName: "",
@@ -96,7 +97,7 @@ const ProductForm = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const categoriesCollection = collection(db, "categories");
+        const categoriesCollection = collection(db, "main-category");
         const categorySnapshot = await getDocs(categoriesCollection);
         const categoryList = categorySnapshot.docs
           .filter((doc) => doc.data().isActive)
@@ -482,8 +483,16 @@ const ProductForm = () => {
       <BreadCrumb
         items={[
           { label: "Master Data", path: "#" },
-          { label: "Product List", path: "/master/product-list" },
-          { label: isEditMode ? "Edit Product" : "Add Product", path: "#" },
+          { label: "Product List", path: "/product-list" },
+          {
+            label: viewMode
+              ? "View Product"
+              : isEditMode
+                ? "Edit Product"
+                : "Add Product",
+            path: "#",
+          }
+
         ]}
       />
       {!isEditMode && (
@@ -497,7 +506,15 @@ const ProductForm = () => {
         title={isEditMode ? "Edit Product" : "Add Product"}
         onCancel={handleCancel}
         onSubmit={handleSubmit}
-        submitText={loading ? "Saving..." : (isEditMode ? "Update Product" : "Create Product")}
+        cancelText={viewMode ? null : "Cancel"}
+        {...(!viewMode && {
+          submitText: loading
+            ? "Saving..."
+            : isEditMode
+              ? "Update Product"
+              : "Create Product"
+        })}
+
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <TextInput
@@ -506,6 +523,7 @@ const ProductForm = () => {
             value={formData.productName}
             onChange={(value) => handleInputChange("productName", value)}
             error={errors.productName}
+            disabled={viewMode}
             required
           />
           <TextInput
@@ -514,6 +532,7 @@ const ProductForm = () => {
             value={formData.productCode}
             onChange={(value) => handleInputChange("productCode", value)}
             error={errors.productCode}
+            disabled={viewMode}
             required
           />
           <TextInput
@@ -522,6 +541,7 @@ const ProductForm = () => {
             value={formData.skuCode}
             onChange={(value) => handleInputChange("skuCode", value)}
             error={errors.skuCode}
+            disabled={viewMode}
             required
           />
         </div>
@@ -534,6 +554,7 @@ const ProductForm = () => {
             onChange={(value) => handleInputChange("shortDescription", value)}
             error={errors.shortDescription}
             required
+            disabled={viewMode}
             rows={3}
           />
           <TextArea
@@ -544,11 +565,12 @@ const ProductForm = () => {
             error={errors.longDescription}
             required
             rows={3}
+            disabled={viewMode}
             maxLength={1000}
           />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
           <TextInput
             label="MRP"
             placeholder="MRP"
@@ -557,6 +579,7 @@ const ProductForm = () => {
             error={errors.mrp}
             required
             type="number"
+            disabled={viewMode}
             min="0"
             step="0.01"
           />
@@ -568,6 +591,7 @@ const ProductForm = () => {
             error={errors.salesPrice}
             required
             type="number"
+            disabled={viewMode}
             min="0"
             step="0.01"
           />
@@ -580,7 +604,19 @@ const ProductForm = () => {
             required
             type="number"
             min="0"
+            disabled={viewMode}
             step="0.01"
+          />
+          <TextInput
+            label="Stock Quantity"
+            placeholder="Stock"
+            value={formData.stock}
+            onChange={(value) => handleInputChange("stock", value)}
+            error={errors.stock}
+            required
+            type="number"
+            min="0"
+            disabled={viewMode}
           />
           <TextInput
             label="Handling Time"
@@ -591,6 +627,7 @@ const ProductForm = () => {
             required
             type="number"
             min="0"
+            disabled={viewMode}
           />
           <SearchableDropdown
             label="Category"
@@ -601,6 +638,7 @@ const ProductForm = () => {
             error={errors.categoryId}
             required
             multiple
+            disabled={viewMode}
           />
           <SearchableDropdown
             label="Brand"
@@ -610,46 +648,86 @@ const ProductForm = () => {
             placeholder="Select brand"
             error={errors.brandId}
             required
+            disabled={viewMode}
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <SingleImageUpload
-              label="Thumbnail"
-              placeholder="Upload thumbnail"
-              maxSizeKB={200}
-              acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-              onImageSelect={(image) => handleInputChange("thumbnail", image)}
-              onImageRemove={() => handleInputChange("thumbnail", null)}
-              defaultImage={isEditMode ? formData.thumbnail : null}
-              required
-            />
-            {errors.thumbnail && (
-              <p className="mt-1 text-sm text-red-600">{errors.thumbnail}</p>
-            )}
-          </div>
-          <div>
-            <MultipleImageUpload
-              label="Product Images"
-              placeholder="Upload product images"
-              maxSizeKB={500}
-              maxImages={5}
-              acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-              onImagesSelect={(images) => handleInputChange("productImages", images)}
-              onImagesUpdate={(images) => handleInputChange("productImages", images)}
-              defaultImages={isEditMode ? formData.productImages : []}
-              required
-            />
-            {errors.productImages && (
-              <p className="mt-1 text-sm text-red-600">{errors.productImages}</p>
-            )}
-          </div>
+          {viewMode && (
+            <>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Thumbnail
+              </label>
+              <div className="w-20 h-20 overflow-hidden rounded-md">
+                <img src={formData.thumbnail} alt="" />
+              </div>
+            </>
+          )}
+
+          {
+            !viewMode && <div>
+              <div>
+                <SingleImageUpload
+                  label="Thumbnail"
+                  placeholder="Upload thumbnail"
+                  maxSizeKB={200}
+                  acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+                  onImageSelect={(image) => handleInputChange("thumbnail", image)}
+                  onImageRemove={() => handleInputChange("thumbnail", null)}
+                  defaultImage={isEditMode ? formData.thumbnail : null}
+                  required
+                  disabled={viewMode}
+                />
+                {errors.thumbnail && (
+                  <p className="mt-1 text-sm text-red-600">{errors.thumbnail}</p>
+                )}
+              </div>
+            </div>
+          }
+          {viewMode && (
+            <>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Product Images
+              </label>
+              {
+                formData.productImages.length === 0 ? (
+                  <p>No images available</p>
+                ) : (
+                  <div className="flex space-x-2 overflow-x-auto">
+                    {formData.productImages.map((imgUrl, index) => (
+                      <div key={index} className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-md">
+                        <img src={imgUrl} alt={`Product ${index + 1}`} />
+                      </div>
+                    ))}
+                  </div>
+                )
+              }
+            </>
+          )}
+          {!viewMode && <div>
+            <div>
+              <MultipleImageUpload
+                label="Product Images"
+                placeholder="Upload product images"
+                maxSizeKB={500}
+                maxImages={5}
+                acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+                onImagesSelect={(images) => handleInputChange("productImages", images)}
+                onImagesUpdate={(images) => handleInputChange("productImages", images)}
+                defaultImages={isEditMode ? formData.productImages : []}
+                required
+                disabled={viewMode}
+              />
+              {errors.productImages && (
+                <p className="mt-1 text-sm text-red-600">{errors.productImages}</p>
+              )}
+            </div></div>}
         </div>
 
         <div className="flex items-center space-x-2">
           <input
             type="checkbox"
+            disabled={viewMode}
             id="isActive"
             checked={formData.isActive}
             onChange={(e) => handleInputChange("isActive", e.target.checked)}

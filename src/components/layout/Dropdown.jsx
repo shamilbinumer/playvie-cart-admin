@@ -1,3 +1,6 @@
+import { ChevronDown } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
 // Dropdown Component
 const Dropdown = ({ 
   label, 
@@ -51,7 +54,7 @@ const Dropdown = ({
           <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
             {selectedOption ? selectedOption.label : placeholder}
           </span>
-          <ChevronDown 
+          <ChevronDown
             className={`h-4 w-4 transition-transform duration-200 ${
               isOpen ? 'transform rotate-180' : ''
             } ${disabled ? 'text-gray-400' : 'text-gray-600'}`} 

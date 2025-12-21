@@ -384,7 +384,7 @@ const BannersForm = () => {
               exactDimensions={true}
             />
           </div>
-          <div>
+          {/* <div>
             <SingleImageUpload
               label="Banner Image Mobile"
               placeholder="Upload banner image mobile (min 600x800px)"
@@ -398,7 +398,7 @@ const BannersForm = () => {
               // dimentionValidation={{ width: 600, height: 800 }}
               exactDimensions={true}
             />
-          </div>
+          </div> */}
         </div>
 
         {/* Date fields */}

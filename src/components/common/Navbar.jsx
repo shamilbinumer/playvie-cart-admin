@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Search, User, X } from "lucide-react";
 import SearchBar from "../layout/SearchBar";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { user } = useSelector((state) => state.auth)
-  console.log(user);
+  const navigate = useNavigate();
   
 
   const toggleSearch = () => {
@@ -20,7 +21,7 @@ export default function Navbar() {
         <div className="mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
             {/* Logo */}
-            <div className="flex-shrink-0 lg:w-48 ml-9 md:ml-0">
+            <div className="flex-shrink-0 lg:w-48 ml-9 md:ml-0 cursor-pointer" onClick={()=>navigate('/')}>
               <img src="/Images/Playviecart.png" className="w-20 h-auto" alt="" />
             </div>
 

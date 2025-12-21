@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, increment, addDoc, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, increment, addDoc, query, orderBy, limit, startAfter, where } from 'firebase/firestore';
 import BreadCrumb from '../../layout/BreadCrumb';
-import { Package, Plus, Minus, Search, AlertTriangle, TrendingUp, TrendingDown, X } from 'lucide-react';
+import { Package, Plus, Minus, Search, AlertTriangle, TrendingDown, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { db } from '../../../firebase';
 import Swal from 'sweetalert2';
 import Preloader from '../../common/Preloader';
@@ -11,35 +11,226 @@ const Inventory = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [updatingProducts, setUpdatingProducts] = useState({});
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [stockChange, setStockChange] = useState('');
     const [changeType, setChangeType] = useState('add');
-    const [reason, setReason] = useState('');
     const [updating, setUpdating] = useState(false);
+    
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
+    const [lastVisible, setLastVisible] = useState(null);
+    const [firstVisible, setFirstVisible] = useState(null);
+    const [hasMore, setHasMore] = useState(true);
+    const [totalProducts, setTotalProducts] = useState(0);
+    const [isSearching, setIsSearching] = useState(false);
+
+    // Stats states
+    const [lowStockCount, setLowStockCount] = useState(0);
+    const [outOfStockCount, setOutOfStockCount] = useState(0);
 
     useEffect(() => {
+        fetchStats();
         fetchProducts();
     }, []);
 
-    const fetchProducts = async () => {
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            if (searchTerm) {
+                handleSearch();
+            } else {
+                setCurrentPage(1);
+                fetchProducts();
+            }
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm]);
+
+    const fetchStats = async () => {
         try {
-            setLoading(true);
             const productsRef = collection(db, 'products');
             const snapshot = await getDocs(productsRef);
+            const allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            setTotalProducts(allProducts.length);
+            setLowStockCount(allProducts.filter(p => (p.stock || 0) < 10 && (p.stock || 0) > 0).length);
+            setOutOfStockCount(allProducts.filter(p => (p.stock || 0) === 0).length);
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        }
+    };
+
+    const fetchProducts = async (direction = 'initial') => {
+        try {
+            setLoading(true);
+            setIsSearching(false);
+            const productsRef = collection(db, 'products');
+            
+            let q;
+            
+            if (direction === 'next' && lastVisible) {
+                q = query(
+                    productsRef,
+                    orderBy('productName'),
+                    startAfter(lastVisible),
+                    limit(itemsPerPage)
+                );
+            } else if (direction === 'prev' && firstVisible) {
+                // For previous page, we need to fetch in reverse
+                q = query(
+                    productsRef,
+                    orderBy('productName'),
+                    limit(itemsPerPage)
+                );
+            } else {
+                // Initial load
+                q = query(
+                    productsRef,
+                    orderBy('productName'),
+                    limit(itemsPerPage)
+                );
+            }
+
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+                setProducts([]);
+                setHasMore(false);
+                return;
+            }
+
             const productsData = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
+
             setProducts(productsData);
+            setFirstVisible(snapshot.docs[0]);
+            setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+            setHasMore(snapshot.docs.length === itemsPerPage);
+
         } catch (error) {
             console.error('Error fetching products:', error);
-            alert('Failed to fetch products');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to fetch products'
+            });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleStockUpdate = async () => {
+    const handleSearch = async () => {
+        if (!searchTerm.trim()) {
+            fetchProducts();
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setIsSearching(true);
+            const productsRef = collection(db, 'products');
+            
+            // Create search query - Firebase requires exact matches or prefix searches
+            // For better search, consider using a search service like Algolia
+            const searchLower = searchTerm.toLowerCase();
+            const searchUpper = searchTerm.toUpperCase();
+            
+            // Get all products and filter client-side for now
+            // For production, implement proper search indexing
+            const snapshot = await getDocs(productsRef);
+            const allProducts = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            const filtered = allProducts.filter(product => {
+                const name = (product.productName || product.name || product.title || '').toLowerCase();
+                return name.includes(searchTerm.toLowerCase());
+            });
+
+            setProducts(filtered);
+            setHasMore(false); // Disable pagination during search
+            
+        } catch (error) {
+            console.error('Error searching products:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Search Error',
+                text: 'Failed to search products'
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (hasMore && !isSearching) {
+            setCurrentPage(prev => prev + 1);
+            fetchProducts('next');
+        }
+    };
+
+    const handlePrevPage = () => {
+        if (currentPage > 1 && !isSearching) {
+            setCurrentPage(prev => prev - 1);
+            fetchProducts('prev');
+        }
+    };
+
+    const handleStockChange = async (product, changeType) => {
+        const changeAmount = changeType === 'add' ? 1 : -1;
+        
+        if (changeType === 'remove' && product.stock <= 0) {
+            Swal.fire({
+                icon: "error",
+                title: "Not Enough Stock",
+                text: "Stock cannot be negative!",
+            });
+            return;
+        }
+
+        try {
+            setUpdatingProducts(prev => ({ ...prev, [product.id]: true }));
+
+            const productRef = doc(db, "products", product.id);
+            await updateDoc(productRef, {
+                stock: increment(changeAmount),
+            });
+
+            setProducts(prevProducts =>
+                prevProducts.map(p =>
+                    p.id === product.id ? { ...p, stock: p.stock + changeAmount } : p
+                )
+            );
+
+            // Update stats
+            await fetchStats();
+
+            Swal.fire({
+                icon: "success",
+                title: "Stock Updated",
+                text: `Stock ${changeType === 'add' ? 'increased' : 'decreased'} by 1`,
+                timer: 1000,
+                showConfirmButton: false,
+            });
+
+        } catch (error) {
+            console.error("Error updating stock:", error);
+            Swal.fire({
+                icon: "error",
+                title: "Update Failed",
+                text: "Failed to update stock. Please try again.",
+            });
+        } finally {
+            setUpdatingProducts(prev => ({ ...prev, [product.id]: false }));
+        }
+    };
+
+    const handleBulkStockUpdate = async () => {
         if (!selectedProduct || !stockChange || stockChange <= 0) {
             Swal.fire({
                 icon: "warning",
@@ -52,10 +243,8 @@ const Inventory = () => {
         try {
             setUpdating(true);
             const productRef = doc(db, "products", selectedProduct.id);
-            const changeAmount =
-                changeType === "add" ? parseInt(stockChange) : -parseInt(stockChange);
+            const changeAmount = changeType === "add" ? parseInt(stockChange) : -parseInt(stockChange);
 
-            // Prevent negative stock
             if (changeType === "remove" && selectedProduct.stock + changeAmount < 0) {
                 Swal.fire({
                     icon: "error",
@@ -65,12 +254,10 @@ const Inventory = () => {
                 return;
             }
 
-            // Update product stock
             await updateDoc(productRef, {
                 stock: increment(changeAmount),
             });
 
-            // Log stock movement
             await addDoc(collection(db, "stockMovements"), {
                 productId: selectedProduct.id,
                 productName: selectedProduct.productName,
@@ -81,14 +268,15 @@ const Inventory = () => {
                 timestamp: new Date(),
             });
 
-            // Update UI
             setProducts(
                 products.map((p) =>
                     p.id === selectedProduct.id ? { ...p, stock: p.stock + changeAmount } : p
                 )
             );
 
-            // Reset
+            // Update stats
+            await fetchStats();
+
             setSelectedProduct(null);
             setStockChange('');
 
@@ -102,25 +290,15 @@ const Inventory = () => {
 
         } catch (error) {
             console.error("Error updating stock:", error);
-
             Swal.fire({
                 icon: "error",
                 title: "Update Failed",
                 text: "Failed to update stock. Please try again.",
             });
-
         } finally {
             setUpdating(false);
         }
     };
-
-    const filteredProducts = products.filter(product => {
-        const name = product.name || product.title || '';
-        return name.toLowerCase().includes(searchTerm.toLowerCase());
-    });
-
-    const lowStockProducts = products.filter(p => (p.stock || 0) < 10);
-    const outOfStockProducts = products.filter(p => (p.stock || 0) === 0);
 
     const modalStyle = {
         position: 'absolute',
@@ -136,7 +314,7 @@ const Inventory = () => {
         overflow: 'auto'
     };
 
-    if (loading) {
+    if (loading && products.length === 0) {
         return <Preloader />
     }
 
@@ -151,7 +329,7 @@ const Inventory = () => {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-500 text-sm">Total Products</p>
-                                <p className="text-2xl font-bold text-gray-800">{products.length}</p>
+                                <p className="text-2xl font-bold text-gray-800">{totalProducts}</p>
                             </div>
                             <Package className="w-10 h-10 text-blue-500" />
                         </div>
@@ -161,7 +339,7 @@ const Inventory = () => {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-500 text-sm">Low Stock</p>
-                                <p className="text-2xl font-bold text-orange-600">{lowStockProducts.length}</p>
+                                <p className="text-2xl font-bold text-orange-600">{lowStockCount}</p>
                             </div>
                             <AlertTriangle className="w-10 h-10 text-orange-500" />
                         </div>
@@ -171,14 +349,14 @@ const Inventory = () => {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-500 text-sm">Out of Stock</p>
-                                <p className="text-2xl font-bold text-red-600">{outOfStockProducts.length}</p>
+                                <p className="text-2xl font-bold text-red-600">{outOfStockCount}</p>
                             </div>
                             <TrendingDown className="w-10 h-10 text-red-500" />
                         </div>
                     </div>
                 </div>
 
-                {/* Stock Update Modal */}
+                {/* Bulk Stock Update Modal */}
                 <Modal
                     open={selectedProduct !== null}
                     onClose={() => {
@@ -188,10 +366,9 @@ const Inventory = () => {
                     aria-labelledby="stock-update-modal"
                 >
                     <Box sx={modalStyle}>
-                        {/* Modal Header */}
                         <div className="flex items-center justify-between p-6 border-b">
                             <h2 className="text-xl font-semibold text-gray-800">
-                                Update Stock: {selectedProduct?.name || selectedProduct?.title || selectedProduct?.productName}
+                                Bulk Update: {selectedProduct?.name || selectedProduct?.title || selectedProduct?.productName}
                             </h2>
                             <button
                                 onClick={() => {
@@ -204,7 +381,6 @@ const Inventory = () => {
                             </button>
                         </div>
 
-                        {/* Modal Body */}
                         <div className="p-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
@@ -217,16 +393,14 @@ const Inventory = () => {
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setChangeType('add')}
-                                            className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 ${changeType === 'add' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'
-                                                }`}
+                                            className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 ${changeType === 'add' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                                         >
                                             <Plus className="w-4 h-4" />
                                             Add Stock
                                         </button>
                                         <button
                                             onClick={() => setChangeType('remove')}
-                                            className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 ${changeType === 'remove' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'
-                                                }`}
+                                            className={`flex-1 py-2 px-4 rounded-lg flex items-center justify-center gap-2 ${changeType === 'remove' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'}`}
                                         >
                                             <Minus className="w-4 h-4" />
                                             Remove Stock
@@ -242,16 +416,15 @@ const Inventory = () => {
                                         value={stockChange}
                                         onChange={(e) => setStockChange(e.target.value)}
                                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        placeholder="Enter quantity"
+                                        placeholder="Enter quantity (e.g., 100, 1000)"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Modal Footer */}
                         <div className="flex gap-3 p-6 border-t bg-gray-50">
                             <button
-                                onClick={handleStockUpdate}
+                                onClick={handleBulkStockUpdate}
                                 disabled={updating}
                                 className="flex-1 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 font-medium transition-colors"
                             >
@@ -283,6 +456,11 @@ const Inventory = () => {
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </div>
+                        {isSearching && (
+                            <p className="text-sm text-gray-500 mt-2">
+                                Showing search results for "{searchTerm}" ({products.length} found)
+                            </p>
+                        )}
                     </div>
 
                     <div className="overflow-x-auto">
@@ -292,53 +470,86 @@ const Inventory = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thumbnail</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Management</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
 
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {filteredProducts.length === 0 ? (
+                                {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-2 text-center text-gray-500">
+                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                                            <div className="flex justify-center">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : products.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                                             No products found
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredProducts.map((product, index) => {
+                                    products.map((product, index) => {
                                         const stock = product.stock || 0;
                                         const isLowStock = stock < 10 && stock > 0;
                                         const isOutOfStock = stock === 0;
+                                        const isUpdating = updatingProducts[product.id];
+                                        const displayIndex = isSearching ? index + 1 : (currentPage - 1) * itemsPerPage + index + 1;
 
                                         return (
                                             <tr key={product.id} className="hover:bg-gray-50">
-
-                                                {/* Product ID */}
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                                    {index + 1}
+                                                <td className="px-6 whitespace-nowrap text-sm text-gray-800">
+                                                    {displayIndex}
                                                 </td>
 
-                                                {/* Thumbnail */}
-                                                <td className="px-6 py-2 whitespace-nowrap">
+                                                <td className="px-6 py-0.5 whitespace-nowrap">
                                                     <img
                                                         src={product.image || product.thumbnail || "https://via.placeholder.com/50"}
                                                         alt="thumbnail"
-                                                        className="w-12 h-12 rounded object-cover border"
+                                                        className="w-8 h-8 rounded object-cover border"
                                                     />
                                                 </td>
 
-                                                {/* Product Name */}
-                                                <td className="px-6 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                <td className="px-6 py-0.5 whitespace-nowrap text-sm font-medium text-gray-900">
                                                     {product.productName || "Unnamed Product"}
                                                 </td>
 
-                                                {/* Stock */}
-                                                <td className="px-6 py-2 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                                    {stock}
+                                                <td className="px-6 py-0.5 whitespace-nowrap">
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <button
+                                                            onClick={() => handleStockChange(product, 'remove')}
+                                                            disabled={isUpdating || stock <= 0}
+                                                            className="w-6 h-6 flex items-center justify-center rounded-lg bg-red-500 text-white hover:bg-red-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                                        >
+                                                            <Minus className="w-4 h-4" />
+                                                        </button>
+                                                        
+                                                        <div className="w-16 text-center">
+                                                            <span className="text-lg font-bold text-gray-800">
+                                                                {isUpdating ? '...' : stock}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <button
+                                                            onClick={() => handleStockChange(product, 'add')}
+                                                            disabled={isUpdating}
+                                                            className="w-6 h-6 flex items-center justify-center rounded-lg bg-green-500 text-white hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                                        >
+                                                            <Plus className="w-4 h-4" />
+                                                        </button>
+
+                                                        <button
+                                                            onClick={() => setSelectedProduct(product)}
+                                                            disabled={isUpdating}
+                                                            className="ml-2 px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                                        >
+                                                            Bulk
+                                                        </button>
+                                                    </div>
                                                 </td>
 
-                                                {/* Status */}
                                                 <td className="px-6 py-2 whitespace-nowrap">
                                                     {isOutOfStock ? (
                                                         <span className="px-2 py-1 inline-flex text-xs font-semibold rounded-full bg-red-100 text-red-800">
@@ -354,25 +565,40 @@ const Inventory = () => {
                                                         </span>
                                                     )}
                                                 </td>
-
-                                                {/* Actions */}
-                                                <td className="px-6 py-2 whitespace-nowrap text-sm">
-                                                    <button
-                                                        onClick={() => setSelectedProduct(product)}
-                                                        className="text-blue-600 hover:text-blue-800 font-medium"
-                                                    >
-                                                        Manage Stock
-                                                    </button>
-                                                </td>
-
                                             </tr>
-
                                         );
                                     })
                                 )}
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination */}
+                    {!isSearching && (
+                        <div className="px-6 py-4 border-t flex items-center justify-between">
+                            <div className="text-sm text-gray-700">
+                                Showing page <span className="font-medium">{currentPage}</span>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handlePrevPage}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={handleNextPage}
+                                    disabled={!hasMore}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                                >
+                                    Next
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

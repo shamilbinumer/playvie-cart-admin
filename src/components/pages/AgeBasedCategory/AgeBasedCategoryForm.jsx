@@ -3,6 +3,7 @@ import FormContainer from "../../layout/FormContainer";
 import ColorPickerInput from "../../layout/ColorPickerInput";
 import TextInput from "../../layout/TextInput";
 import SingleImageUpload from "../../layout/SingleImageUpload";
+import Dropdown from "../../layout/Dropdown";
 import BreadCrumb from "../../layout/BreadCrumb";
 import { db } from "../../../firebase";
 import { collection, doc, setDoc, updateDoc } from "firebase/firestore";
@@ -12,6 +13,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 const CategoryForm = () => {
   const [formData, setFormData] = useState({
     categoryName: "",
+    categoryType: "", // NEW FIELD
     bannerImage: null,
     thumbnailImage: null,
     backgroundColor: "#3498db",
@@ -29,12 +31,19 @@ const CategoryForm = () => {
   const API_KEY = "de98e3de28eb4beeec9706734178ec3a"; // move to .env
   const navigate = useNavigate();
 
+  // Category Type Options
+  const categoryTypeOptions = [
+    { label: "Years", value: "Years" },
+    { label: "Months", value: "Months" }
+  ];
+
   // Load category data from navigation state (edit mode)
   useEffect(() => {
     if (isEditMode && location.state?.categoryData) {
       const categoryData = location.state.categoryData;
       setFormData({
         categoryName: categoryData.categoryName || "",
+        categoryType: categoryData.categoryType || "", // NEW FIELD
         bannerImage: categoryData.bannerImage || null,
         thumbnailImage: categoryData.thumbnailImage || null,
         backgroundColor: categoryData.backgroundColor || "#3498db",
@@ -77,6 +86,7 @@ const CategoryForm = () => {
     const newErrors = {};
 
     if (!formData.categoryName.trim()) newErrors.categoryName = "Category name is required";
+    if (!formData.categoryType) newErrors.categoryType = "Category type is required";
     if (!formData.priority.trim()) newErrors.priority = "Priority is required";
     if (!formData.bannerImage) newErrors.bannerImage = "Banner image is required";
     if (!formData.thumbnailImage) newErrors.thumbnailImage = "Thumbnail image is required";
@@ -84,7 +94,8 @@ const CategoryForm = () => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-const uploadToImgBB = async (file) => {
+
+  const uploadToImgBB = async (file) => {
     if (!file) {
       throw new Error("No file provided for upload");
     }
@@ -136,6 +147,7 @@ const uploadToImgBB = async (file) => {
         await updateDoc(docRef, {
           id: categoryId,
           categoryName: formData.categoryName,
+          categoryType: formData.categoryType, // NEW FIELD
           bannerImage: bannerUrl,
           thumbnailImage: thumbnailUrl,
           backgroundColor: formData.backgroundColor,
@@ -156,6 +168,7 @@ const uploadToImgBB = async (file) => {
         await setDoc(docRef, {
           id: docRef.id,
           categoryName: formData.categoryName,
+          categoryType: formData.categoryType, // NEW FIELD
           bannerImage: bannerUrl,
           thumbnailImage: thumbnailUrl,
           backgroundColor: formData.backgroundColor,
@@ -173,7 +186,7 @@ const uploadToImgBB = async (file) => {
         });
       }
 
-      navigate("/master/category-list");
+      navigate("/master/age-based-category-list");
     } catch (error) {
       console.error("Error saving category:", error);
       Swal.fire("Error!", "Something went wrong.", "error");
@@ -187,25 +200,37 @@ const uploadToImgBB = async (file) => {
       <BreadCrumb
         items={[
           { label: "Master Data", path: "#" },
-          { label: "Category List", path: "/master/category-list" },
+          { label: "Age Based Category List", path: "/master/age-based-category-list" },
           { label: isEditMode ? "Edit Category" : "Add Category", path: "#" },
         ]}
       />
 
       <FormContainer
         title={isEditMode ? "Edit Category" : "Add Category"}
-        onCancel={() => navigate("/master/category-list")}
+        onCancel={() => navigate("/master/age-based-category-list")}
         onSubmit={handleSubmit}
         submitText={loading ? "Saving..." : isEditMode ? "Update Category" : "Create Category"}
       >
-        <TextInput
-          label="Category Name"
-          placeholder="Enter category name"
-          value={formData.categoryName}
-          onChange={(value) => handleInputChange("categoryName", value)}
-          error={errors.categoryName}
-          required
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <TextInput
+            label="Category Name"
+            placeholder="Enter category name"
+            value={formData.categoryName}
+            onChange={(value) => handleInputChange("categoryName", value)}
+            error={errors.categoryName}
+            required
+          />
+
+          <Dropdown
+            label="Category Type"
+            options={categoryTypeOptions}
+            value={formData.categoryType}
+            onChange={(value) => handleInputChange("categoryType", value)}
+            placeholder="Select category type"
+            error={errors.categoryType}
+            required
+          />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <SingleImageUpload

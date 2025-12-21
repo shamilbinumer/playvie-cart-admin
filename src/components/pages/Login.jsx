@@ -123,15 +123,15 @@ const Login = () => {
                     superAdmin:userData.superAdmin
                 });         
                 localStorage.setItem("authToken", token);
-                Swal.fire({
-                    title: "Success!",
-                    text: "Login successful.",
-                    icon: "success",
-                    timer: 2000,
-                    showConfirmButton: false,
-                });
+                // Swal.fire({
+                //     title: "Success!",
+                //     text: "Login successful.",
+                //     icon: "success",
+                //     timer: 500,
+                //     showConfirmButton: false,
+                // });
 
-                navigate("/dashboard");
+                window.location.href='/'
             } else {
                 Swal.fire({
                     title: "Error!",

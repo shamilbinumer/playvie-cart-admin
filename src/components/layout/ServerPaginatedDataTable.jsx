@@ -102,7 +102,7 @@ const ServerPaginatedDataTable = ({
                   {columns.map((column) => (
                     <td
                       key={column.key}
-                      className="px-6 whitespace-nowrap text-sm text-gray-900"
+                      className="px-6 py-1 whitespace-nowrap text-sm text-gray-900"
                     >
                       {renderCell
                         ? renderCell(item, column, startIndex + index)
