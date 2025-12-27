@@ -143,6 +143,12 @@ export const menuData = [
         icon: Images,
         url:"/portfolio/service/ServiceList"
       },
+      {
+        id: 65,
+        title: "Banner",
+        icon: Images,
+        url:"/portfolio/Banner/PortfolioBannerList"
+      },
 
     ]
   },

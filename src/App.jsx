@@ -43,6 +43,9 @@ import MainCategoryList from "./components/pages/MainCategory/MainCategoryList";
 import MainCategoryForm from "./components/pages/MainCategory/MainCategoryForm";
 import RecomentedForYouForm from "./components/pages/Offers/RecomentedForYou/RecomentedForYouForm";
 import RecomentedForYouList from "./components/pages/Offers/RecomentedForYou/RecomentedForYouList";
+import PortfolioBannerList from "./components/pages/portfolio/banner/PortfolioBannerList";
+import PortfolioBannersForm from "./components/pages/portfolio/banner/PortfolioBannersForm";
+
 
 function AppLayout() {
   const location = useLocation();
@@ -101,6 +104,8 @@ function AppLayout() {
             <Route path="/portfolio/blog/BlogForm" element={<ProtectedRoute><BlogForm /></ProtectedRoute>} />
             <Route path="/portfolio/service/ServiceForm" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
             <Route path="/portfolio/service/ServiceList" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
+            <Route path="/portfolio/Banner/PortfolioBannerList" element={<ProtectedRoute><PortfolioBannerList/></ProtectedRoute>} />
+            <Route path="/portfolio/Banner/PortfolioBannerForm" element={<ProtectedRoute><PortfolioBannersForm/></ProtectedRoute>} />
             {/* PlaySchool Website */}
             <Route path="/playschool/admissionEnquiry" element={<ProtectedRoute><AdmissionEnquiryList /></ProtectedRoute>} />
             <Route path="/playschool/galley-list" element={<ProtectedRoute><PlayschoolGalleyList /></ProtectedRoute>} />
