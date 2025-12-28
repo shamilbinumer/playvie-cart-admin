@@ -79,7 +79,7 @@ const MainCategoryList = () => {
 
     if (result.isConfirmed) {
       try {
-        await deleteDoc(doc(db, "categories", category.id));
+        await deleteDoc(doc(db, "main-category", category.id));
 
         setCategories((prev) => prev.filter((c) => c.id !== category.id));
 

@@ -166,6 +166,7 @@ const ProductList = () => {
           twoRating: product.twoRating,
           oneRating: product.oneRating,
           id: product.id,
+          stock: product.stock,
         }
       }
     });
@@ -240,6 +241,7 @@ const ProductList = () => {
           twoRating: product.twoRating,
           oneRating: product.oneRating,
           id: product.id,
+          stock: product.stock,
         }
       }
     });

@@ -33,6 +33,7 @@ const ProductForm = () => {
     purchaseRate: "",
     handlingTime: "",
     categoryId: "",
+    ageByCategoryIds: [],
     brandId: "",
     thumbnail: null,
     productImages: [],
@@ -46,6 +47,7 @@ const ProductForm = () => {
 
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
+  const [ageByCategories, setAgeByCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
@@ -55,7 +57,6 @@ const ProductForm = () => {
   useEffect(() => {
     if (isEditMode && location.state?.productData) {
       const productData = location.state.productData;
-      console.log("Loaded product data for editing:", productData);
       setFormData({
         productName: productData.productName || "",
         productCode: productData.productCode || "",
@@ -78,6 +79,7 @@ const ProductForm = () => {
         twoRating: productData.twoRating || 0,
         oneRating: productData.oneRating || 0,
         id: productData.id || "",
+        ageByCategoryIds: productData.ageByCategoryIds || [],
       });
       setOriginalSkuCode(productData.skuCode || "");
     } else if (isEditMode && !location.state?.productData) {
@@ -108,6 +110,27 @@ const ProductForm = () => {
           .sort((a, b) => a.label.localeCompare(b.label));
 
         setCategories(categoryList);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesCollection = collection(db, "categories");
+        const categorySnapshot = await getDocs(categoriesCollection);
+        const categoryList = categorySnapshot.docs
+          .filter((doc) => doc.data().isActive)
+          .map((doc) => ({
+            value: doc.id,
+            label: doc.data().categoryName,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+
+        setAgeByCategories(categoryList);
       } catch (error) {
         console.error("Error fetching categories:", error);
       }
@@ -394,6 +417,7 @@ const ProductForm = () => {
         fiveRating: formData.fiveRating,
         stock: formData.stock,
         updatedAt: serverTimestamp(),
+        ageByCategoriesIds: formData.ageByCategoryIds,
       };
 
       if (isEditMode) {
@@ -453,6 +477,7 @@ const ProductForm = () => {
           threeRating: 0,
           fourRating: 0,
           fiveRating: 0,
+          ageByCategoryIds: [],
         });
       }
     } catch (error) {
@@ -636,6 +661,17 @@ const ProductForm = () => {
             onChange={(value) => handleInputChange("categoryId", value)}
             placeholder="Select category"
             error={errors.categoryId}
+            required
+            multiple
+            disabled={viewMode}
+          />
+          <SearchableDropdown
+            label="Age By Category"
+            options={ageByCategories}
+            value={formData.ageByCategoryIds}
+            onChange={(value) => handleInputChange("ageByCategoryIds", value)}
+            placeholder="Select age by category"
+            error={errors.ageByCategoryIds}
             required
             multiple
             disabled={viewMode}

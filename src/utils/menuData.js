@@ -86,7 +86,7 @@ export const menuData = [
     children: [
       {
         id: 441,
-        title: "Recommended Products",
+        title: "Recommended For You",
         icon: Package,
         url: "/offers/recommended-for-you"
       }
