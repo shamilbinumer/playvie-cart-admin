@@ -4,6 +4,9 @@ import {
   ShoppingCart,
   Users,
   Package,
+  Clock,
+  CheckCircle,
+  XCircle
 } from 'lucide-react'
 import { BarChart } from '@mui/x-charts/BarChart';
 import { db } from '../../firebase';
@@ -13,7 +16,15 @@ const Dashboard = () => {
   const [orderCount, setOrderCount] = useState(0);
   const [productCount, setProductCount] = useState(0);
   const [userCount, setUserCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [deliveredCount, setDeliveredCount] = useState(0);
+  const [cancelledCount, setCancelledCount] = useState(0);
   const [monthlyOrderData, setMonthlyOrderData] = useState([]);
+  const [dailyOrderData, setDailyOrderData] = useState([]);
+  const [chartView, setChartView] = useState('monthly');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState([]);
+  const [allMonthlyData, setAllMonthlyData] = useState([]);
 
   useEffect(() => {
     const fetchCounts = async () => {
@@ -30,12 +41,19 @@ const Dashboard = () => {
         const usersSnapshot = await getDocs(activeUsersQuery);
         setUserCount(usersSnapshot.size);
 
-        // Get Orders Count and Monthly Data
+        // Get Orders Count and Monthly/Daily Data
         const ordersSnapshot = await getDocs(collection(db, "orders"));
         setOrderCount(ordersSnapshot.size);
 
-        // Process monthly order data
+        // Initialize status counters
+        let pending = 0;
+        let delivered = 0;
+        let cancelled = 0;
+
+        // Process monthly order data and count order statuses
         const monthCounts = {};
+        const dayCounts = {};
+        const yearsSet = new Set();
         const monthNames = [
           'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
           'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
@@ -43,6 +61,16 @@ const Dashboard = () => {
 
         ordersSnapshot.forEach((doc) => {
           const orderData = doc.data();
+          
+          // Count order statuses
+          if (orderData.orderStatus === 0) {
+            pending += 1;
+          } else if (orderData.orderStatus === 4) {
+            delivered += 1;
+          } else if (orderData.orderStatus === 7) {
+            cancelled += 1;
+          }
+
           if (orderData.orderDate) {
             // Handle both Firestore Timestamp and regular date
             let date;
@@ -52,25 +80,71 @@ const Dashboard = () => {
               date = new Date(orderData.orderDate);
             }
             
-            const monthYear = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-            monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
+            const year = date.getFullYear();
+            yearsSet.add(year);
+            
+            // Monthly grouping
+            const monthYear = `${monthNames[date.getMonth()]} ${year}`;
+            const monthKey = `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            
+            if (!monthCounts[monthKey]) {
+              monthCounts[monthKey] = {
+                month: monthNames[date.getMonth()],
+                year: year,
+                monthYear: monthYear,
+                orders: 0
+              };
+            }
+            monthCounts[monthKey].orders += 1;
+
+            // Daily grouping (last 30 days)
+            const dayKey = date.toISOString().split('T')[0];
+            dayCounts[dayKey] = (dayCounts[dayKey] || 0) + 1;
           }
         });
 
-        // Convert to array format for chart
-        const chartData = Object.entries(monthCounts)
-          .map(([month, count]) => ({
-            month,
-            orders: count
-          }))
+        // Set order status counts
+        setPendingCount(pending);
+        setDeliveredCount(delivered);
+        setCancelledCount(cancelled);
+
+        // Set available years (from 2025 to current year)
+        const currentYear = new Date().getFullYear();
+        const years = [];
+        for (let year = 2025; year <= currentYear; year++) {
+          years.push(year);
+        }
+        setAvailableYears(years);
+
+        // Convert monthly data to array format for chart
+        const allMonthlyChartData = Object.values(monthCounts)
           .sort((a, b) => {
-            // Sort by date
-            const dateA = new Date(a.month);
-            const dateB = new Date(b.month);
-            return dateA - dateB;
+            if (a.year !== b.year) return a.year - b.year;
+            return monthNames.indexOf(a.month) - monthNames.indexOf(b.month);
           });
 
-        setMonthlyOrderData(chartData);
+        setAllMonthlyData(allMonthlyChartData);
+
+        // Filter for current year initially
+        const currentYearData = allMonthlyChartData.filter(item => item.year === currentYear);
+        setMonthlyOrderData(currentYearData);
+
+        // Convert daily data to array format and get last 30 days
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+
+        const dailyChartData = Object.entries(dayCounts)
+          .map(([day, count]) => ({
+            day: new Date(day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            date: new Date(day),
+            orders: count
+          }))
+          .filter(item => item.date >= thirtyDaysAgo)
+          .sort((a, b) => a.date - b.date)
+          .map(({ day, orders }) => ({ day, orders }));
+
+        setDailyOrderData(dailyChartData);
 
       } catch (error) {
         console.error("Error fetching counts:", error);
@@ -80,23 +154,51 @@ const Dashboard = () => {
     fetchCounts();
   }, []);
 
+  // Filter monthly data when year changes
+  useEffect(() => {
+    const filteredData = allMonthlyData.filter(item => item.year === selectedYear);
+    setMonthlyOrderData(filteredData);
+  }, [selectedYear, allMonthlyData]);
+
   const stats = [
     {
       title: "Orders",
       value: orderCount.toString(),
-      icon: ShoppingCart
+      icon: ShoppingCart,
+      bg: "bg-gradient-to-br from-blue-100 to-blue-200"
     },
     {
       title: "Products",
       value: productCount.toString(),
-      icon: Package
+      icon: Package,
+      bg: "bg-gradient-to-br from-purple-100 to-purple-200"
     },
     {
       title: "Active Users",
       value: userCount.toString(),
-      icon: Users
+      icon: Users,
+      bg: "bg-gradient-to-br from-green-100 to-green-200"
+    },
+    {
+      title: "Pending Orders",
+      value: pendingCount.toString(),
+      icon: Clock,
+      bg: "bg-gradient-to-br from-amber-100 to-amber-200"
+    },
+    {
+      title: "Delivered Orders",
+      value: deliveredCount.toString(),
+      icon: CheckCircle,
+      bg: "bg-gradient-to-br from-teal-100 to-teal-200"
+    },
+    {
+      title: "Cancelled Orders",
+      value: cancelledCount.toString(),
+      icon: XCircle,
+      bg: "bg-gradient-to-br from-rose-100 to-rose-200"
     }
   ];
+
 
   const chartSetting = {
     yAxis: [
@@ -118,37 +220,86 @@ const Dashboard = () => {
     },
   };
 
+  const currentData = chartView === 'monthly' ? monthlyOrderData : dailyOrderData;
+  const xAxisKey = chartView === 'monthly' ? 'month' : 'day';
+
   return (
-    <div className="h-[calc(100vh-4rem)]">
+    <div className="">
       {/* Main Content */}
       <div className="lg:ml-0">
         {/* Dashboard Content */}
         <main className="p-1">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-3">
-            {stats.map((stat, index) => (
-              <div key={index} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                  </div>
-                  <div className="p-3 rounded-full bg-green-100">
-                    <stat.icon className="w-6 h-6 text-[#81184e]" />
-                  </div>
-                </div>
-              </div>
-            ))}
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+    {stats.map((stat, index) => (
+      <div key={index} className={`${stat.bg} rounded-lg shadow p-3 hover:shadow-md transition-shadow`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xl font-bold text-gray-700">{stat.title}</p>
+            <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
           </div>
+          <div className="p-3 rounded-full bg-white/50">
+            <stat.icon className="w-6 h-6 text-[#81184e]" />
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
 
           {/* Orders Chart */}
-          <div className="bg-white rounded-lg shadow p-6 ">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Monthly Orders</h2>
-            {monthlyOrderData.length > 0 ? (
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+              <h2 className="text-xl font-bold text-gray-900">
+                {chartView === 'monthly' ? `Monthly Orders - ${selectedYear}` : 'Daily Orders (Last 30 Days)'}
+              </h2>
+              
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Year Selector - Only show in monthly view */}
+                {chartView === 'monthly' && availableYears.length > 0 && (
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                    className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#81184e] focus:border-transparent"
+                  >
+                    {availableYears.map(year => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                
+                {/* Toggle Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setChartView('monthly')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      chartView === 'monthly'
+                        ? 'bg-[#81184e] text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    onClick={() => setChartView('daily')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      chartView === 'daily'
+                        ? 'bg-[#81184e] text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    Daily
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {currentData.length > 0 ? (
               <BarChart
-                dataset={monthlyOrderData}
+                dataset={currentData}
                 xAxis={[{ 
-                  dataKey: 'month', 
+                  dataKey: xAxisKey, 
                   scaleType: 'band',
                   tickPlacement: 'middle',
                   tickLabelPlacement: 'middle'
@@ -164,7 +315,9 @@ const Dashboard = () => {
               />
             ) : (
               <div className="flex items-center justify-center h-[400px] text-gray-500">
-                Loading chart data...
+                {chartView === 'monthly' 
+                  ? `No order data available for ${selectedYear}`
+                  : 'Loading chart data...'}
               </div>
             )}
           </div>
