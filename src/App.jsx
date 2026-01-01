@@ -45,6 +45,7 @@ import RecomentedForYouForm from "./components/pages/Offers/RecomentedForYou/Rec
 import RecomentedForYouList from "./components/pages/Offers/RecomentedForYou/RecomentedForYouList";
 import PortfolioBannerList from "./components/pages/portfolio/banner/PortfolioBannerList";
 import PortfolioBannersForm from "./components/pages/portfolio/banner/PortfolioBannersForm";
+import CouponManageList from "./components/pages/CouponManagement/CouponManageList";
 
 
 function AppLayout() {
@@ -121,6 +122,8 @@ function AppLayout() {
             <Route path="/offers/recommended-for-you" element={<ProtectedRoute><RecomentedForYouList/></ProtectedRoute>} />
             <Route path="/offers/add-recommended-for-you" element={<ProtectedRoute><RecomentedForYouForm /></ProtectedRoute>} />
             <Route path="/recommended-for-you/edit-recommended-for-you/:recomentedForYouId" element={<ProtectedRoute><RecomentedForYouForm /></ProtectedRoute>} />
+          
+            <Route path="/offers/coupon-management" element={<ProtectedRoute><CouponManageList /></ProtectedRoute>} />
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />

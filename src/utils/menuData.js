@@ -89,6 +89,12 @@ export const menuData = [
         title: "Recommended For You",
         icon: Package,
         url: "/offers/recommended-for-you"
+      },
+      {
+        id: 442,
+        title: "Coupon Management",
+        icon: Package,
+        url: "/offers/coupon-management"
       }
     ]
   },

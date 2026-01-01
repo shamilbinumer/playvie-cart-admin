@@ -43,6 +43,7 @@ const ProductForm = () => {
     threeRating: 0,
     fourRating: 0,
     fiveRating: 0,
+    featured: false,
   });
 
   const [errors, setErrors] = useState({});
@@ -418,6 +419,7 @@ const ProductForm = () => {
         stock: formData.stock,
         updatedAt: serverTimestamp(),
         ageByCategoriesIds: formData.ageByCategoryIds,
+        featured: formData.featured || false,
       };
 
       if (isEditMode) {
