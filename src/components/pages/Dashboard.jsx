@@ -329,7 +329,7 @@ const Dashboard = () => {
           </div>
 
           {/* Orders Chart */}
-          <div className="bg-white rounded-lg shadow p-6 overflow-x-auto">
+          <div className="bg-white rounded-lg shadow p-2 overflow-x-auto">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
               <h2 className="text-xl font-bold text-gray-900">
                 {chartView === 'monthly' ? `Monthly Orders - ${selectedYear}` : 'Daily Orders (Last 30 Days)'}

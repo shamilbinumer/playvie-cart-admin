@@ -33,7 +33,7 @@ const PortfolioBannerList = () => {
         setError(null);
         console.log("Fetching portfolio banners...");
         
-        const querySnapshot = await getDocs(collection(db, "PortfolioBanner"));
+        const querySnapshot = await getDocs(collection(db, "portfolioBanner"));
         const portfolioBannerList = querySnapshot.docs.map((doc, index) => ({
           id: doc.id,
           ...doc.data(),
