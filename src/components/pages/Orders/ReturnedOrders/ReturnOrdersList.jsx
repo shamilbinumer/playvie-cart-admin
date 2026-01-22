@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import BreadCrumb from '../../layout/BreadCrumb'
-import { PageHeader } from '../../common/PageHeader'
+import BreadCrumb from '../../../layout/BreadCrumb'
+import { PageHeader } from '../../../common/PageHeader'
 import { Eye } from 'lucide-react'
 import { collection, query, orderBy, limit, startAfter, getDocs, getCountFromServer } from 'firebase/firestore'
-import { db } from '../../../firebase'
-import Preloader from '../../common/Preloader'
-import ServerPaginatedDataTable from '../../layout/ServerPaginatedDataTable'
 import { useNavigate } from 'react-router-dom'
+import { db } from '../../../../firebase'
+import Preloader from '../../../common/Preloader'
+import ServerPaginatedDataTable from '../../../layout/ServerPaginatedDataTable'
 
-const OrderList = () => {
+const ReturnOrdersList = () => {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [tableLoading, setTableLoading] = useState(false);
@@ -28,8 +28,9 @@ const OrderList = () => {
 
     const fetchTotalCount = async () => {
         try {
-            const orderRef = collection(db, "orders");
-            const snapshot = await getCountFromServer(orderRef);
+            const returnOrderRef = collection(db, "returnOrders");
+            const q = query(returnOrderRef);
+            const snapshot = await getCountFromServer(q);
             setTotalOrders(snapshot.data().count);
         } catch (error) {
             console.error("Error fetching total count:", error);
@@ -37,10 +38,8 @@ const OrderList = () => {
     };
 
     const fetchOrders = async (page, perPage) => {
-        // Create cache key
         const cacheKey = `${page}-${perPage}`;
         
-        // Check if page is cached
         if (pageCache[cacheKey]) {
             setOrders(pageCache[cacheKey].orders);
             setInitialLoading(false);
@@ -49,34 +48,31 @@ const OrderList = () => {
 
         setTableLoading(true);
         try {
-            const orderRef = collection(db, "orders");
+            const returnOrderRef = collection(db, "returnOrders");
             let q;
 
             if (page === 1) {
-                // First page query
                 q = query(
-                    orderRef,
-                    orderBy("orderDate", "desc"),
+                    returnOrderRef,
+                    orderBy("createdAt", "desc"),
                     limit(perPage)
                 );
             } else {
-                // Subsequent pages - use cached last document from previous page
                 const prevCacheKey = `${page - 1}-${perPage}`;
                 const prevPageCache = pageCache[prevCacheKey];
                 
                 if (prevPageCache && prevPageCache.lastVisible) {
                     q = query(
-                        orderRef,
-                        orderBy("orderDate", "desc"),
+                        returnOrderRef,
+                        orderBy("createdAt", "desc"),
                         startAfter(prevPageCache.lastVisible),
                         limit(perPage)
                     );
                 } else {
-                    // If cache missing, fetch from beginning (fallback)
                     const skip = (page - 1) * perPage;
                     q = query(
-                        orderRef,
-                        orderBy("orderDate", "desc"),
+                        returnOrderRef,
+                        orderBy("createdAt", "desc"),
                         limit(skip + perPage)
                     );
                     
@@ -85,11 +81,10 @@ const OrderList = () => {
                     
                     const orderData = slicedDocs.map((doc) => ({
                         ...doc.data(),
-                        orderId: doc.id,
+                        returnOrderId: doc.id,
                         id: doc.id,
                     }));
 
-                    // Cache the page data
                     setPageCache(prev => ({
                         ...prev,
                         [cacheKey]: {
@@ -118,14 +113,13 @@ const OrderList = () => {
             const docs = querySnapshot.docs;
             const orderData = docs.map((doc) => ({
                 ...doc.data(),
-                orderId: doc.id,
+                returnOrderId: doc.id,
                 id: doc.id,
             }));
 
             const firstDoc = docs[0];
             const lastDoc = docs[docs.length - 1];
 
-            // Cache the page data
             setPageCache(prev => ({
                 ...prev,
                 [cacheKey]: {
@@ -137,7 +131,7 @@ const OrderList = () => {
 
             setOrders(orderData);
         } catch (error) {
-            console.error("Error fetching orders:", error);
+            console.error("Error fetching return orders:", error);
         } finally {
             setTableLoading(false);
             setInitialLoading(false);
@@ -150,67 +144,69 @@ const OrderList = () => {
 
     const handleItemsPerPageChange = (newItemsPerPage) => {
         setItemsPerPage(newItemsPerPage);
-        setCurrentPage(1); // Reset to first page when items per page changes
-        setPageCache({}); // Clear cache when items per page changes
+        setCurrentPage(1);
+        setPageCache({});
     };
 
     const totalPages = Math.ceil(totalOrders / itemsPerPage);
 
-    const getStatusLabel = (statusCode) => {
-        const statusMap = {
-            0: "Pending",
-            1: "Accept",
-            2: "Dispatch",
-            3: "Shipped",
-            4: "Delivered",
-            5: "Rejected",
-            6: "Return",
-            7: "User Canceled"
-        };
-        return statusMap[statusCode] || "Unknown";
-    };
-
-    const getStatusColor = (statusCode) => {
-        const colorMap = {
-            0: "bg-yellow-100 text-yellow-800",
-            1: "bg-blue-100 text-blue-800",
-            2: "bg-purple-100 text-purple-800",
-            3: "bg-indigo-100 text-indigo-800",
-            4: "bg-green-100 text-green-800",
-            5: "bg-red-100 text-red-800",
-            6: "bg-orange-100 text-orange-800",
-            7: "bg-gray-100 text-gray-800"
-        };
-        return colorMap[statusCode] || "bg-gray-100 text-gray-800";
-    };
-
     const columns = [
         { key: "index", title: "#" },
         { key: "orderId", title: "Order ID" },
-        { key: "orderDate", title: "Order Date" },
-        { key: "orderStatus", title: "Status" },
+        { key: "productName", title: "Product Name" },
+        { key: "returnAmount", title: "Return Amount" },
+        { key: "reason", title: "Reason" },
+        { key: "createdAt", title: "Return Date" },
+        { key: "returnOrderStatus", title: "Status" },
         { key: "actions", title: "Actions" },
     ];
 
     const actions = [
         {
-            label: "ViewOrderDetails",
+            label: "ViewReturnDetails",
             icon: Eye,
             handler: (item) => {
-                navigate(`/orders/order-list/order-details/${item.orderId}`);
+                navigate(`/orders/return-order-details/${item.returnOrderId}`, { state: { orderData: item } });
             }
         },
     ];
+
+    // Updated status mapping to match your order statuses
+    const getStatusLabel = (status) => {
+        const statusMap = {
+            0: { label: "Pending", bgColor: "bg-yellow-100", textColor: "text-yellow-800" },
+            1: { label: "Accepted", bgColor: "bg-blue-100", textColor: "text-blue-800" },
+            2: { label: "Dispatched", bgColor: "bg-indigo-100", textColor: "text-indigo-800" },
+            3: { label: "Shipped", bgColor: "bg-purple-100", textColor: "text-purple-800" },
+            4: { label: "Delivered", bgColor: "bg-green-100", textColor: "text-green-800" },
+            5: { label: "Rejected", bgColor: "bg-red-100", textColor: "text-red-800" },
+            6: { label: "Return", bgColor: "bg-orange-100", textColor: "text-orange-800" },
+            7: { label: "User Canceled", bgColor: "bg-gray-100", textColor: "text-gray-800" },
+            8: { label: "Return Accepted", bgColor: "bg-emerald-100", textColor: "text-emerald-800" },
+            9: { label: "Return Rejected", bgColor: "bg-rose-100", textColor: "text-rose-800" },
+            10: { label: "Return Received", bgColor: "bg-cyan-100", textColor: "text-cyan-800" },
+            11: { label: "Refund Completed", bgColor: "bg-teal-100", textColor: "text-teal-800" },
+        };
+        return statusMap[status] || { label: "Unknown", bgColor: "bg-gray-100", textColor: "text-gray-800" };
+    };
 
     const renderCell = (item, column, index) => {
         if (column.key === "index") {
             return (currentPage - 1) * itemsPerPage + index + 1;
         }
 
-        if (column.key === "orderDate") {
-            if (item.orderDate?.seconds) {
+        if (column.key === "productName") {
+            return item.productDetails?.productName || "-";
+        }
+
+        if (column.key === "returnAmount") {
+            return item.returnAmount ? `₹${item.returnAmount}` : "-";
+        }
+
+        if (column.key === "createdAt") {
+            if (item.createdAt?.seconds) {
                 const date = new Date(
-                    item.orderDate.seconds * 1000 + item.orderDate.nanoseconds / 1000000
+                    item.createdAt.seconds * 1000 + item.createdAt.nanoseconds / 1000000
                 );
                 return date.toLocaleDateString("en-GB", {
                     day: "2-digit",
@@ -222,13 +218,11 @@ const OrderList = () => {
             }
         }
 
-        if (column.key === "orderStatus") {
-            const statusCode = item.orderStatus;
-            const statusLabel = getStatusLabel(statusCode);
-            const statusColor = getStatusColor(statusCode);
+        if (column.key === "returnOrderStatus") {
+            const status = getStatusLabel(item.returnOrderStatus);
             return (
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
-                    {statusLabel}
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.bgColor} ${status.textColor}`}>
+                    {status.label}
                 </span>
             );
         }
@@ -240,11 +234,7 @@ const OrderList = () => {
                         <button
                             key={i}
                             onClick={() => action.handler && action.handler(item)}
-                            className={`flex items-center justify-center rounded transition-colors ${
-                                action.label === "ViewOrderDetails" ? "text-green-600 hover:text-green-800" : ""
-                            } ${
-                                action.label === "Delete" ? "text-red-600 hover:text-red-800" : ""
-                            }`}
+                            className="flex items-center justify-center rounded transition-colors text-green-600 hover:text-green-800"
                         >
                             {action.icon && (
                                 <span className="mr-1">
@@ -263,12 +253,12 @@ const OrderList = () => {
     if (initialLoading) {
         return (
             <div>
-                 <BreadCrumb items={[
-                { label: "Manage Orders", path: "#" },
-                { label: "Order List", path: "#" }
+                <BreadCrumb items={[
+                    { label: "Manage Orders", path: "#" },
+                    { label: "Return Orders", path: "#" }
                 ]} />
                 <PageHeader
-                    title="Order List"
+                    title="Return Orders"
                     className="border-b border-gray-200 pb-4"
                 />
                 <Preloader />
@@ -280,10 +270,10 @@ const OrderList = () => {
         <div>
             <BreadCrumb items={[
                 { label: "Manage Orders", path: "#" },
-                { label: "Order List", path: "#" }
-                ]} />
+                { label: "Return Orders", path: "#" }
+            ]} />
             <PageHeader
-                title="Order List"
+                title="Return Orders"
                 className="border-b border-gray-200 pb-4"
             />
             <div className="p-2">
@@ -305,4 +295,4 @@ const OrderList = () => {
     );
 };
 
-export default OrderList;
+export default ReturnOrdersList;

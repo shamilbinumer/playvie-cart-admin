@@ -46,6 +46,9 @@ import RecomentedForYouList from "./components/pages/Offers/RecomentedForYou/Rec
 import PortfolioBannerList from "./components/pages/portfolio/banner/PortfolioBannerList";
 import PortfolioBannersForm from "./components/pages/portfolio/banner/PortfolioBannersForm";
 import CouponManageList from "./components/pages/CouponManagement/CouponManageList";
+import CancelledOrders from "./components/pages/Orders/CancelledOrders";
+import ReturnOrdersList from "./components/pages/Orders/ReturnedOrders/ReturnOrdersList";
+import ReturnedOrderDetailPage from "./components/pages/Orders/ReturnedOrders/ReturnedOrderDetailPage";
 
 
 function AppLayout() {
@@ -54,8 +57,6 @@ function AppLayout() {
   // Routes that don't use Navbar/Sidebar
   const noLayoutRoutes = ["/create-new-admin", "/login"];
   const isNoLayout = noLayoutRoutes.includes(location.pathname);
-
-
 
   return (
     <>
@@ -116,12 +117,16 @@ function AppLayout() {
             {/* Orders */}
             <Route path="/orders/order-list" element={<ProtectedRoute><OrderList /></ProtectedRoute>} />
             <Route path="/orders/order-list/order-details/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+            <Route path="/orders/cancelled-orders" element={<ProtectedRoute><CancelledOrders /></ProtectedRoute>} />
+            <Route path="/orders/return-orders" element={<ProtectedRoute><ReturnOrdersList /></ProtectedRoute>} />
+            <Route path="/orders/return-order-details/:orderId" element={<ProtectedRoute><ReturnedOrderDetailPage /></ProtectedRoute>} />
             {/* Inventory */}
             <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
             {/* Offers */}
             <Route path="/offers/recommended-for-you" element={<ProtectedRoute><RecomentedForYouList/></ProtectedRoute>} />
             <Route path="/offers/add-recommended-for-you" element={<ProtectedRoute><RecomentedForYouForm /></ProtectedRoute>} />
             <Route path="/recommended-for-you/edit-recommended-for-you/:recomentedForYouId" element={<ProtectedRoute><RecomentedForYouForm /></ProtectedRoute>} />
+
           
             <Route path="/offers/coupon-management" element={<ProtectedRoute><CouponManageList /></ProtectedRoute>} />
 

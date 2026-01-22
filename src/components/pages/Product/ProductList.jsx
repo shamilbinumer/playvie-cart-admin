@@ -8,14 +8,15 @@ import {
   orderBy,
   limit,
   startAfter,
-  getCountFromServer
+  getCountFromServer,
+  where
 } from "firebase/firestore";
 import { db } from "../../../firebase";
 import BreadCrumb from "../../layout/BreadCrumb";
 import { PageHeader } from "../../common/PageHeader";
 import AddButton from "../../layout/AddButton";
 import ServerPaginatedDataTable from "../../layout/ServerPaginatedDataTable";
-import { Eye, SquarePen, Trash2 } from "lucide-react";
+import { Eye, SquarePen, Trash2, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import Preloader from "../../common/Preloader";
@@ -25,6 +26,10 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
+
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,13 +43,66 @@ const ProductList = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // 🔹 Fetch total count
-  const fetchTotalCount = async () => {
+  const fetchTotalCount = async (searchQuery = "") => {
     try {
       const collectionRef = collection(db, "products");
-      const snapshot = await getCountFromServer(collectionRef);
-      setTotalItems(snapshot.data().count);
+      
+      if (searchQuery) {
+        // For search, we need to get all docs and filter (Firestore limitation)
+        const q = query(collectionRef);
+        const snapshot = await getDocs(q);
+        const filtered = snapshot.docs.filter(doc => {
+          const data = doc.data();
+          return data.productName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                 data.productCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                 data.skuCode?.toLowerCase().includes(searchQuery.toLowerCase());
+        });
+        setTotalItems(filtered.length);
+      } else {
+        const snapshot = await getCountFromServer(collectionRef);
+        setTotalItems(snapshot.data().count);
+      }
     } catch (error) {
       console.error("Error fetching count:", error);
+    }
+  };
+
+  // 🔹 Search products from Firestore
+  const searchProducts = async (searchQuery) => {
+    try {
+      setTableLoading(true);
+      const collectionRef = collection(db, "products");
+      const q = query(collectionRef, orderBy("productName"));
+      const querySnapshot = await getDocs(q);
+
+      // Filter results on client side (Firestore limitation for partial text search)
+      const filtered = querySnapshot.docs
+        .filter(doc => {
+          const data = doc.data();
+          const search = searchQuery.toLowerCase();
+          return (
+            data.productName?.toLowerCase().includes(search) ||
+            data.productCode?.toLowerCase().includes(search) ||
+            data.skuCode?.toLowerCase().includes(search)
+          );
+        })
+        .map(doc => ({
+          id: doc.id,
+          productId: doc.id,
+          ...doc.data()
+        }));
+
+      setProducts(filtered);
+      setTotalItems(filtered.length);
+    } catch (error) {
+      console.error("Error searching products:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to search products.",
+      });
+    } finally {
+      setTableLoading(false);
     }
   };
 
@@ -60,7 +118,7 @@ const ProductList = () => {
         // First page query
         q = query(
           collectionRef,
-          orderBy("productName"), // Change orderBy field as needed
+          orderBy("productName"),
           limit(perPage)
         );
       } else {
@@ -119,18 +177,52 @@ const ProductList = () => {
     initializeData();
   }, []);
 
+  // Handle search with debounce
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      if (searchTerm.trim() === "") {
+        // Reset to normal pagination
+        setIsSearching(false);
+        setCurrentPage(1);
+        setLastDocs({});
+        fetchTotalCount();
+        fetchProducts(1);
+      } else {
+        setIsSearching(true);
+        setCurrentPage(1);
+        searchProducts(searchTerm.trim());
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(delaySearch);
+  }, [searchTerm]);
+
+  // Handle clear search
+  const handleClearSearch = async () => {
+    setSearchTerm("");
+    setIsSearching(false);
+    setCurrentPage(1);
+    setLastDocs({});
+    await fetchTotalCount();
+    await fetchProducts(1);
+  };
+
   // Handle page change
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    fetchProducts(page);
+    if (!isSearching) {
+      fetchProducts(page);
+    }
   };
 
   // Handle items per page change
   const handleItemsPerPageChange = (newItemsPerPage) => {
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page
-    setLastDocs({}); // Clear cached documents
-    fetchProducts(1, newItemsPerPage);
+    setCurrentPage(1);
+    setLastDocs({});
+    if (!isSearching) {
+      fetchProducts(1, newItemsPerPage);
+    }
   };
 
   const columns = [
@@ -195,15 +287,17 @@ const ProductList = () => {
           showConfirmButton: false,
         });
 
-        // Refresh count and current page
-        await fetchTotalCount();
-
-        // If current page is now empty and not the first page, go back one page
-        if (products.length === 1 && currentPage > 1) {
-          setCurrentPage(currentPage - 1);
-          fetchProducts(currentPage - 1);
+        // Refresh based on current mode
+        if (isSearching) {
+          await searchProducts(searchTerm.trim());
         } else {
-          fetchProducts(currentPage);
+          await fetchTotalCount();
+          if (products.length === 1 && currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+            fetchProducts(currentPage - 1);
+          } else {
+            fetchProducts(currentPage);
+          }
         }
       } catch (error) {
         console.error("Error deleting product:", error);
@@ -248,13 +342,12 @@ const ProductList = () => {
   }
 
   const actions = [
-  
     {
       label: "Edit",
       handler: handleEdit,
       icon: SquarePen,
     },
-      {
+    {
       label: "View",
       handler: handleViewProduct,
       icon: Eye,
@@ -339,6 +432,37 @@ const ProductList = () => {
           }
         />
 
+        {/* Search Bar */}
+        <div className="p-2">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+              autoFocus
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by product name, product code, or SKU..."
+                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <Search className="absolute right-3 top-2.5 text-gray-400" width={20} />
+            </div>
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {isSearching && (
+            <p className="mt-2 text-sm text-gray-600">
+              Found {totalItems} result{totalItems !== 1 ? 's' : ''} for "{searchTerm}"
+            </p>
+          )}
+        </div>
+
         <div className="p-2">
           <ServerPaginatedDataTable
             columns={columns}
@@ -346,7 +470,7 @@ const ProductList = () => {
             actions={actions}
             renderCell={renderCell}
             currentPage={currentPage}
-            totalPages={totalPages}
+            totalPages={isSearching ? 1 : totalPages}
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onPageChange={handlePageChange}

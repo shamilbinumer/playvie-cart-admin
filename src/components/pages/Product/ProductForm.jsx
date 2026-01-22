@@ -416,7 +416,7 @@ const ProductForm = () => {
         threeRating: formData.threeRating,
         fourRating: formData.fourRating,
         fiveRating: formData.fiveRating,
-        stock: formData.stock,
+        stock: Number(formData.stock),
         updatedAt: serverTimestamp(),
         ageByCategoriesIds: formData.ageByCategoryIds,
         featured: formData.featured || false,

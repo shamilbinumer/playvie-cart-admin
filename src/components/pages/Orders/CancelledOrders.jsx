@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react'
 import BreadCrumb from '../../layout/BreadCrumb'
 import { PageHeader } from '../../common/PageHeader'
 import { Eye } from 'lucide-react'
-import { collection, query, orderBy, limit, startAfter, getDocs, getCountFromServer } from 'firebase/firestore'
+import { collection, query, where, orderBy, limit, startAfter, getDocs, getCountFromServer } from 'firebase/firestore'
 import { db } from '../../../firebase'
 import Preloader from '../../common/Preloader'
 import ServerPaginatedDataTable from '../../layout/ServerPaginatedDataTable'
 import { useNavigate } from 'react-router-dom'
 
-const OrderList = () => {
+const CancelledOrders = () => {
     const navigate = useNavigate();
     const [orders, setOrders] = useState([]);
     const [tableLoading, setTableLoading] = useState(false);
@@ -29,7 +29,8 @@ const OrderList = () => {
     const fetchTotalCount = async () => {
         try {
             const orderRef = collection(db, "orders");
-            const snapshot = await getCountFromServer(orderRef);
+            const q = query(orderRef, where("orderStatus", "==", 7));
+            const snapshot = await getCountFromServer(q);
             setTotalOrders(snapshot.data().count);
         } catch (error) {
             console.error("Error fetching total count:", error);
@@ -56,6 +57,7 @@ const OrderList = () => {
                 // First page query
                 q = query(
                     orderRef,
+                    where("orderStatus", "==", 7),
                     orderBy("orderDate", "desc"),
                     limit(perPage)
                 );
@@ -67,6 +69,7 @@ const OrderList = () => {
                 if (prevPageCache && prevPageCache.lastVisible) {
                     q = query(
                         orderRef,
+                        where("orderStatus", "==", 7),
                         orderBy("orderDate", "desc"),
                         startAfter(prevPageCache.lastVisible),
                         limit(perPage)
@@ -76,6 +79,7 @@ const OrderList = () => {
                     const skip = (page - 1) * perPage;
                     q = query(
                         orderRef,
+                        where("orderStatus", "==", 7),
                         orderBy("orderDate", "desc"),
                         limit(skip + perPage)
                     );
@@ -137,7 +141,7 @@ const OrderList = () => {
 
             setOrders(orderData);
         } catch (error) {
-            console.error("Error fetching orders:", error);
+            console.error("Error fetching cancelled orders:", error);
         } finally {
             setTableLoading(false);
             setInitialLoading(false);
@@ -155,34 +159,6 @@ const OrderList = () => {
     };
 
     const totalPages = Math.ceil(totalOrders / itemsPerPage);
-
-    const getStatusLabel = (statusCode) => {
-        const statusMap = {
-            0: "Pending",
-            1: "Accept",
-            2: "Dispatch",
-            3: "Shipped",
-            4: "Delivered",
-            5: "Rejected",
-            6: "Return",
-            7: "User Canceled"
-        };
-        return statusMap[statusCode] || "Unknown";
-    };
-
-    const getStatusColor = (statusCode) => {
-        const colorMap = {
-            0: "bg-yellow-100 text-yellow-800",
-            1: "bg-blue-100 text-blue-800",
-            2: "bg-purple-100 text-purple-800",
-            3: "bg-indigo-100 text-indigo-800",
-            4: "bg-green-100 text-green-800",
-            5: "bg-red-100 text-red-800",
-            6: "bg-orange-100 text-orange-800",
-            7: "bg-gray-100 text-gray-800"
-        };
-        return colorMap[statusCode] || "bg-gray-100 text-gray-800";
-    };
 
     const columns = [
         { key: "index", title: "#" },
@@ -223,12 +199,9 @@ const OrderList = () => {
         }
 
         if (column.key === "orderStatus") {
-            const statusCode = item.orderStatus;
-            const statusLabel = getStatusLabel(statusCode);
-            const statusColor = getStatusColor(statusCode);
             return (
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
-                    {statusLabel}
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    User Canceled
                 </span>
             );
         }
@@ -240,11 +213,7 @@ const OrderList = () => {
                         <button
                             key={i}
                             onClick={() => action.handler && action.handler(item)}
-                            className={`flex items-center justify-center rounded transition-colors ${
-                                action.label === "ViewOrderDetails" ? "text-green-600 hover:text-green-800" : ""
-                            } ${
-                                action.label === "Delete" ? "text-red-600 hover:text-red-800" : ""
-                            }`}
+                            className="flex items-center justify-center rounded transition-colors text-green-600 hover:text-green-800"
                         >
                             {action.icon && (
                                 <span className="mr-1">
@@ -263,12 +232,12 @@ const OrderList = () => {
     if (initialLoading) {
         return (
             <div>
-                 <BreadCrumb items={[
-                { label: "Manage Orders", path: "#" },
-                { label: "Order List", path: "#" }
+                <BreadCrumb items={[
+                  { label: "Manage Orders", path: "#" },
+                { label: "Cancelled Orders", path: "#" }
                 ]} />
                 <PageHeader
-                    title="Order List"
+                    title="Cancelled Orders"
                     className="border-b border-gray-200 pb-4"
                 />
                 <Preloader />
@@ -279,11 +248,11 @@ const OrderList = () => {
     return (
         <div>
             <BreadCrumb items={[
-                { label: "Manage Orders", path: "#" },
-                { label: "Order List", path: "#" }
+                  { label: "Manage Orders", path: "#" },
+                { label: "Cancelled Orders", path: "#" }
                 ]} />
             <PageHeader
-                title="Order List"
+                title="Cancelled Orders"
                 className="border-b border-gray-200 pb-4"
             />
             <div className="p-2">
@@ -305,4 +274,4 @@ const OrderList = () => {
     );
 };
 
-export default OrderList;
+export default CancelledOrders;

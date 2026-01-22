@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, increment, addDoc, query, orderBy, limit, startAfter, where } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, increment, addDoc, query, orderBy, limit, startAfter, where, runTransaction, serverTimestamp } from 'firebase/firestore';
 import BreadCrumb from '../../layout/BreadCrumb';
 import { Package, Plus, Minus, Search, AlertTriangle, TrendingDown, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { db } from '../../../firebase';
@@ -29,6 +29,12 @@ const Inventory = () => {
     // Stats states
     const [lowStockCount, setLowStockCount] = useState(0);
     const [outOfStockCount, setOutOfStockCount] = useState(0);
+
+    const swalConfig = {
+    customClass: {
+        container: 'swal-high-zindex'
+    }
+};
 
     useEffect(() => {
         fetchStats();
@@ -114,6 +120,7 @@ const Inventory = () => {
         } catch (error) {
             console.error('Error fetching products:', error);
             Swal.fire({
+                ...swalConfig,
                 icon: 'error',
                 title: 'Error',
                 text: 'Failed to fetch products'
@@ -158,6 +165,7 @@ const Inventory = () => {
         } catch (error) {
             console.error('Error searching products:', error);
             Swal.fire({
+                ...swalConfig,
                 icon: 'error',
                 title: 'Search Error',
                 text: 'Failed to search products'
@@ -181,124 +189,171 @@ const Inventory = () => {
         }
     };
 
-    const handleStockChange = async (product, changeType) => {
-        const changeAmount = changeType === 'add' ? 1 : -1;
-        
-        if (changeType === 'remove' && product.stock <= 0) {
-            Swal.fire({
-                icon: "error",
-                title: "Not Enough Stock",
-                text: "Stock cannot be negative!",
-            });
-            return;
-        }
+  const handleStockChange = async (product, changeType) => {
+    const changeAmount = changeType === 'add' ? 1 : -1;
 
-        try {
-            setUpdatingProducts(prev => ({ ...prev, [product.id]: true }));
+    try {
+        setUpdatingProducts(prev => ({ ...prev, [product.id]: true }));
 
+        // 🔒 Use transaction for atomic read-check-write
+        const newStock = await runTransaction(db, async (transaction) => {
             const productRef = doc(db, "products", product.id);
-            await updateDoc(productRef, {
-                stock: increment(changeAmount),
-            });
+            const productSnap = await transaction.get(productRef);
 
-            setProducts(prevProducts =>
-                prevProducts.map(p =>
-                    p.id === product.id ? { ...p, stock: p.stock + changeAmount } : p
-                )
-            );
-
-            // Update stats
-            await fetchStats();
-
-            Swal.fire({
-                icon: "success",
-                title: "Stock Updated",
-                text: `Stock ${changeType === 'add' ? 'increased' : 'decreased'} by 1`,
-                timer: 1000,
-                showConfirmButton: false,
-            });
-
-        } catch (error) {
-            console.error("Error updating stock:", error);
-            Swal.fire({
-                icon: "error",
-                title: "Update Failed",
-                text: "Failed to update stock. Please try again.",
-            });
-        } finally {
-            setUpdatingProducts(prev => ({ ...prev, [product.id]: false }));
-        }
-    };
-
-    const handleBulkStockUpdate = async () => {
-        if (!selectedProduct || !stockChange || stockChange <= 0) {
-            Swal.fire({
-                icon: "warning",
-                title: "Invalid Quantity",
-                text: "Please enter a valid quantity!",
-            });
-            return;
-        }
-
-        try {
-            setUpdating(true);
-            const productRef = doc(db, "products", selectedProduct.id);
-            const changeAmount = changeType === "add" ? parseInt(stockChange) : -parseInt(stockChange);
-
-            if (changeType === "remove" && selectedProduct.stock + changeAmount < 0) {
-                Swal.fire({
-                    icon: "error",
-                    title: "Not Enough Stock",
-                    text: "Cannot remove more stock than available!",
-                });
-                return;
+            if (!productSnap.exists()) {
+                throw new Error("Product not found");
             }
 
-            await updateDoc(productRef, {
-                stock: increment(changeAmount),
+            const currentStock = Number(productSnap.data().stock) || 0;
+            const calculatedNewStock = currentStock + changeAmount;
+
+            // ✅ Validate BEFORE updating
+            if (calculatedNewStock < 0) {
+                throw new Error("Stock cannot be negative");
+            }
+
+            transaction.update(productRef, {
+                stock: calculatedNewStock  // Use direct value, not increment
             });
 
-            await addDoc(collection(db, "stockMovements"), {
+            return calculatedNewStock;
+        });
+
+        // Update local state with the actual new stock value from transaction
+        setProducts(prevProducts =>
+            prevProducts.map(p =>
+                p.id === product.id 
+                    ? { ...p, stock: newStock } 
+                    : p
+            )
+        );
+
+        await fetchStats();
+
+        Swal.fire({
+            ...swalConfig,
+            icon: "success",
+            title: "Stock Updated",
+            text: `Stock ${changeType === 'add' ? 'increased' : 'decreased'} by 1`,
+            timer: 1000,
+            showConfirmButton: false,
+        });
+
+    } catch (error) {
+        console.error("Error updating stock:", error);
+        
+        let errorMessage = "Failed to update stock. Please try again.";
+        if (error.message === "Stock cannot be negative") {
+            errorMessage = "Not enough stock to remove!";
+        }
+        
+        Swal.fire({
+            ...swalConfig,
+            icon: "error",
+            title: "Update Failed",
+            text: errorMessage
+        });
+    } finally {
+        setUpdatingProducts(prev => ({ ...prev, [product.id]: false }));
+    }
+};
+
+   const handleBulkStockUpdate = async () => {
+    if (!selectedProduct || !stockChange || stockChange <= 0) {
+        setSelectedProduct(null);
+        setStockChange('');
+        Swal.fire({
+            icon: "warning",
+            title: "Invalid Quantity",
+            text: "Please enter a valid quantity!",
+        });
+        return;
+    }
+
+    try {
+        setUpdating(true);
+        const changeAmount = changeType === "add" 
+            ? parseInt(stockChange) 
+            : -parseInt(stockChange);
+
+        // 🔒 Atomic transaction
+        const newStock = await runTransaction(db, async (transaction) => {
+            const productRef = doc(db, "products", selectedProduct.id);
+            const productSnap = await transaction.get(productRef);
+
+            if (!productSnap.exists()) {
+                throw new Error("Product not found");
+            }
+
+            const currentStock = productSnap.data().stock || 0;
+            const calculatedNewStock = currentStock + changeAmount;
+
+            // ✅ Server-side validation
+            if (calculatedNewStock < 0) {
+                throw new Error(
+                    `Cannot remove ${Math.abs(changeAmount)} units. Only ${currentStock} available.`
+                );
+            }
+
+            transaction.update(productRef, {
+                stock: calculatedNewStock
+            });
+
+            // Log stock movement
+            const movementRef = doc(collection(db, "stockMovements"));
+            transaction.set(movementRef, {
                 productId: selectedProduct.id,
                 productName: selectedProduct.productName,
                 changeType,
                 quantity: parseInt(stockChange),
-                previousStock: selectedProduct.stock,
-                newStock: selectedProduct.stock + changeAmount,
-                timestamp: new Date(),
+                previousStock: currentStock,
+                newStock: calculatedNewStock,
+                timestamp: serverTimestamp()
             });
 
-            setProducts(
-                products.map((p) =>
-                    p.id === selectedProduct.id ? { ...p, stock: p.stock + changeAmount } : p
-                )
-            );
+            return calculatedNewStock;
+        });
 
-            // Update stats
-            await fetchStats();
+        // Update local state
+        setProducts(
+            products.map((p) =>
+                p.id === selectedProduct.id 
+                    ? { ...p, stock: newStock } 
+                    : p
+            )
+        );
 
-            setSelectedProduct(null);
-            setStockChange('');
+        await fetchStats();
+        setSelectedProduct(null);
+        setStockChange('');
 
-            Swal.fire({
-                icon: "success",
-                title: "Stock Updated",
-                text: "Stock updated successfully!",
-                timer: 1500,
-                showConfirmButton: false,
-            });
+        Swal.fire({
+            ...swalConfig,
+            icon: "success",
+            title: "Stock Updated",
+            text: "Stock updated successfully!",
+            timer: 1500,
+            showConfirmButton: false,
+        });
 
-        } catch (error) {
-            console.error("Error updating stock:", error);
-            Swal.fire({
-                icon: "error",
-                title: "Update Failed",
-                text: "Failed to update stock. Please try again.",
-            });
-        } finally {
-            setUpdating(false);
+    } catch (error) {
+        console.error("Error updating stock:", error);
+        
+        let errorMessage = "Failed to update stock. Please try again.";
+        if (error.message.includes("Cannot remove")) {
+            errorMessage = error.message;
         }
-    };
+        
+        Swal.fire({
+            ...swalConfig,
+            icon: "error",
+            title: "Update Failed",
+            text: errorMessage
+        });
+    } finally {
+        setUpdating(false);
+    }
+};
 
     const modalStyle = {
         position: 'absolute',
@@ -324,8 +379,8 @@ const Inventory = () => {
             <div className="p-2">
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 mt-6">
-                    <div className="bg-white p-6 rounded-lg shadow">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-1">
+                    <div className="bg-white px-6 py-3 rounded-lg border border-gray-400">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-500 text-sm">Total Products</p>
@@ -335,7 +390,7 @@ const Inventory = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow">
+                <div className="bg-white px-6 py-3 rounded-lg border border-gray-400">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-500 text-sm">Low Stock</p>
@@ -345,7 +400,7 @@ const Inventory = () => {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow">
+                   <div className="bg-white px-6 py-3 rounded-lg border border-gray-400">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-gray-500 text-sm">Out of Stock</p>
@@ -445,13 +500,14 @@ const Inventory = () => {
 
                 {/* Products Table */}
                 <div className="bg-white rounded-lg shadow">
-                    <div className="p-4 border-b">
+                    <div className="p-2 border-b">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <input
                                 type="text"
                                 placeholder="Search products..."
                                 value={searchTerm}
+                                autoFocus
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
@@ -494,7 +550,7 @@ const Inventory = () => {
                                     products.map((product, index) => {
                                         const stock = product.stock || 0;
                                         const isLowStock = stock < 10 && stock > 0;
-                                        const isOutOfStock = stock === 0;
+                                        const isOutOfStock = stock <= 0;
                                         const isUpdating = updatingProducts[product.id];
                                         const displayIndex = isSearching ? index + 1 : (currentPage - 1) * itemsPerPage + index + 1;
 
