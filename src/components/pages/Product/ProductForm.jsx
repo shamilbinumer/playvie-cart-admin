@@ -13,6 +13,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Preloader from "../../common/Preloader";
 import BulkProductUpload from "./BulkUpload";
 import ProductPreview from "./ProductPreview";
+import ColorVariantManager from "./ColorVariantManager";
 
 const ProductForm = () => {
   const navigate = useNavigate();
@@ -44,6 +45,8 @@ const ProductForm = () => {
     fourRating: 0,
     fiveRating: 0,
     featured: false,
+    hasColorVariants: false,  // NEW
+    colorVariants: [],
   });
 
   const [errors, setErrors] = useState({});
@@ -81,10 +84,11 @@ const ProductForm = () => {
         oneRating: productData.oneRating || 0,
         id: productData.id || "",
         ageByCategoryIds: productData.ageByCategoryIds || [],
+        hasColorVariants: productData.hasColorVariants || false,  // NEW
+        colorVariants: productData.colorVariants || [],            // NEW
       });
       setOriginalSkuCode(productData.skuCode || "");
     } else if (isEditMode && !location.state?.productData) {
-      // If navigated directly to edit URL without state, redirect to list
       Swal.fire({
         title: "Error!",
         text: "Invalid access. Please select a product from the list.",
@@ -266,13 +270,43 @@ const ProductForm = () => {
     if (!formData.brandId) {
       newErrors.brandId = "Brand is required";
     }
-    if (!formData.thumbnail) {
-      newErrors.thumbnail = "Thumbnail image is required";
-    } else if (typeof formData.thumbnail === 'string' && formData.thumbnail.trim() === '') {
-      newErrors.thumbnail = "Thumbnail image is required";
-    }
-    if (formData.productImages.length === 0) {
-      newErrors.productImages = "At least one product image is required";
+
+    // NEW: Color variants validation
+    if (formData.hasColorVariants) {
+      if (formData.colorVariants.length === 0) {
+        newErrors.colorVariants = "At least one color variant is required when color variants are enabled";
+      } else {
+        // Validate each variant
+        let variantErrors = [];
+        formData.colorVariants.forEach((variant, index) => {
+          if (!variant.colorName) {
+            variantErrors.push(`Variant ${index + 1}: Color name is required`);
+          }
+          if (!variant.skuCode) {
+            variantErrors.push(`Variant ${index + 1}: SKU code is required`);
+          }
+          if (!variant.thumbnail) {
+            variantErrors.push(`Variant ${index + 1}: Thumbnail is required`);
+          }
+          if (!variant.productImages || variant.productImages.length === 0) {
+            variantErrors.push(`Variant ${index + 1}: At least one product image is required`);
+          }
+        });
+
+        if (variantErrors.length > 0) {
+          newErrors.colorVariants = variantErrors.join('; ');
+        }
+      }
+    } else {
+      // Original validation for non-variant products
+      if (!formData.thumbnail) {
+        newErrors.thumbnail = "Thumbnail image is required";
+      } else if (typeof formData.thumbnail === 'string' && formData.thumbnail.trim() === '') {
+        newErrors.thumbnail = "Thumbnail image is required";
+      }
+      if (formData.productImages.length === 0) {
+        newErrors.productImages = "At least one product image is required";
+      }
     }
 
     setErrors(newErrors);
@@ -367,31 +401,90 @@ const ProductForm = () => {
         }
       }
 
-      // Upload thumbnail (handles both new uploads and existing URLs)
-      let thumbnailUrl = formData.thumbnail;
-      try {
-        thumbnailUrl = await uploadToImgBB(formData.thumbnail);
-        if (!thumbnailUrl) throw new Error("Thumbnail upload failed");
-      } catch (error) {
-        console.error("Error uploading thumbnail:", error);
-        throw new Error("Failed to upload thumbnail: " + error.message);
+      // NEW: Check for duplicate variant SKUs
+      if (formData.hasColorVariants) {
+        const variantSkus = formData.colorVariants.map(v => v.skuCode);
+        const productsRef = collection(db, "products");
+
+        for (const sku of variantSkus) {
+          const q = query(productsRef, where("colorVariants", "array-contains", { skuCode: sku }));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty && (!isEditMode || querySnapshot.docs[0].id !== productId)) {
+            Swal.fire({
+              icon: "warning",
+              title: "Duplicate Variant SKU!",
+              text: `Variant SKU "${sku}" already exists. Please use unique SKU codes.`,
+            });
+            setLoading(false);
+            return;
+          }
+        }
       }
 
-      // Upload product images
-      const productImageUrls = [];
-      for (const img of formData.productImages) {
+      let thumbnailUrl = formData.thumbnail;
+      let productImageUrls = [];
+      let uploadedColorVariants = [];
+
+      // NEW: Handle color variants
+      if (formData.hasColorVariants) {
+        // Upload images for each color variant
+        for (const variant of formData.colorVariants) {
+          try {
+            // Upload variant thumbnail
+            const variantThumbnailUrl = await uploadToImgBB(variant.thumbnail);
+
+            // Upload variant product images
+            const variantImageUrls = [];
+            for (const img of variant.productImages) {
+              const url = await uploadToImgBB(img);
+              if (url) variantImageUrls.push(url);
+            }
+
+            uploadedColorVariants.push({
+              colorId: variant.colorId,
+              colorName: variant.colorName,
+              colorCode: variant.colorCode,
+              skuCode: variant.skuCode,
+              thumbnail: variantThumbnailUrl,
+              productImages: variantImageUrls,
+              stock: variant.stock,
+              isActive: variant.isActive
+            });
+          } catch (error) {
+            console.error(`Error uploading images for variant ${variant.colorName}:`, error);
+            throw new Error(`Failed to upload images for ${variant.colorName}: ${error.message}`);
+          }
+        }
+      } else {
+        // Original image upload logic for non-variant products
         try {
-          const url = await uploadToImgBB(img);
-          if (url) productImageUrls.push(url);
+          thumbnailUrl = await uploadToImgBB(formData.thumbnail);
+          if (!thumbnailUrl) throw new Error("Thumbnail upload failed");
         } catch (error) {
-          console.error("Error uploading product image:", error);
-          throw new Error("Failed to upload product images: " + error.message);
+          console.error("Error uploading thumbnail:", error);
+          throw new Error("Failed to upload thumbnail: " + error.message);
+        }
+
+        for (const img of formData.productImages) {
+          try {
+            const url = await uploadToImgBB(img);
+            if (url) productImageUrls.push(url);
+          } catch (error) {
+            console.error("Error uploading product image:", error);
+            throw new Error("Failed to upload product images: " + error.message);
+          }
         }
       }
 
       // Get category & brand names
       const selectedCategory = categories.find((cat) => cat.value === formData.categoryId);
       const selectedBrand = brands.find((br) => br.value === formData.brandId);
+
+      // Calculate total stock for variant products
+      const totalStock = formData.hasColorVariants
+        ? uploadedColorVariants.reduce((sum, v) => sum + v.stock, 0)
+        : Number(formData.stock);
 
       // Prepare product data
       const productData = {
@@ -408,22 +501,23 @@ const ProductForm = () => {
         categoryName: selectedCategory?.label || "",
         brandId: formData.brandId,
         brandName: selectedBrand?.label || "",
-        thumbnail: thumbnailUrl,
-        productImages: productImageUrls,
+        thumbnail: formData.hasColorVariants ? (uploadedColorVariants[0]?.thumbnail || "") : thumbnailUrl,
+        productImages: formData.hasColorVariants ? (uploadedColorVariants[0]?.productImages || []) : productImageUrls,
         isActive: formData.isActive,
         oneRating: formData.oneRating,
         twoRating: formData.twoRating,
         threeRating: formData.threeRating,
         fourRating: formData.fourRating,
         fiveRating: formData.fiveRating,
-        stock: Number(formData.stock),
+        stock: totalStock,
         updatedAt: serverTimestamp(),
         ageByCategoriesIds: formData.ageByCategoryIds,
         featured: formData.featured || false,
+        hasColorVariants: formData.hasColorVariants,  // NEW
+        colorVariants: uploadedColorVariants,         // NEW
       };
 
       if (isEditMode) {
-        // Update existing product
         await updateDoc(doc(db, "products", productId), {
           ...productData,
           productId: productId,
@@ -439,7 +533,6 @@ const ProductForm = () => {
         });
         navigate('/product-list');
       } else {
-        // Create new product
         const docRef = doc(collection(db, "products"));
         await setDoc(docRef, {
           ...productData,
@@ -457,30 +550,6 @@ const ProductForm = () => {
         });
 
         navigate('/product-list');
-        // Reset form for create mode
-        setFormData({
-          productName: "",
-          productCode: "",
-          skuCode: "",
-          shortDescription: "",
-          longDescription: "",
-          mrp: "",
-          salesPrice: "",
-          purchaseRate: "",
-          handlingTime: "",
-          categoryId: "",
-          brandId: "",
-          thumbnail: null,
-          productImages: [],
-          isActive: true,
-          oneRating: 0,
-          stock: 1,
-          twoRating: 0,
-          threeRating: 0,
-          fourRating: 0,
-          fiveRating: 0,
-          ageByCategoryIds: [],
-        });
       }
     } catch (error) {
       console.error("Error saving product:", error);
@@ -689,8 +758,37 @@ const ProductForm = () => {
             disabled={viewMode}
           />
         </div>
+        <div className="col-span-full">
+          <div className="flex items-center space-x-2 mb-4">
+            <input
+              type="checkbox"
+              id="hasColorVariants"
+              checked={formData.hasColorVariants}
+              onChange={(e) => handleInputChange("hasColorVariants", e.target.checked)}
+              className="accent-[#81184e]"
+              disabled={viewMode}
+            />
+            <label htmlFor="hasColorVariants" className="text-sm font-medium text-gray-700">
+              Enable Color Variants
+            </label>
+            <span className="text-xs text-gray-500">
+              (Check this if product comes in multiple colors)
+            </span>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {formData.hasColorVariants && (
+            <ColorVariantManager
+              variants={formData.colorVariants}
+              onVariantsChange={(variants) => handleInputChange("colorVariants", variants)}
+              disabled={viewMode}
+              errors={errors}
+            />
+          )}
+        </div>
+
+      {
+        !formData.hasColorVariants && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {viewMode && (
             <>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -761,6 +859,8 @@ const ProductForm = () => {
               )}
             </div></div>}
         </div>
+        )
+      }
 
         <div className="flex items-center space-x-2">
           <input
