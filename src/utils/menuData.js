@@ -76,6 +76,12 @@ export const menuData = [
         icon: Tag,
         url: "/master/brand-list"
       },
+      {
+        id: 2222,
+        title: "Size Unit",
+        icon: Package,
+        url: "/master/size-unit-list"
+      },
     ]
   },
   {

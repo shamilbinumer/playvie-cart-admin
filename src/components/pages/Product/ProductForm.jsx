@@ -14,6 +14,7 @@ import Preloader from "../../common/Preloader";
 import BulkProductUpload from "./BulkUpload";
 import ProductPreview from "./ProductPreview";
 import ColorVariantManager from "./ColorVariantManager";
+import SizeVariantManager from "./SizeVariantManager";
 
 const ProductForm = () => {
   const navigate = useNavigate();
@@ -45,14 +46,18 @@ const ProductForm = () => {
     fourRating: 0,
     fiveRating: 0,
     featured: false,
-    hasColorVariants: false,  // NEW
+    hasColorVariants: false,
     colorVariants: [],
+    hasSizeVariants: false,
+    sizeVariants: [],
+    unitId: "",
   });
 
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
   const [ageByCategories, setAgeByCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [sizeUnits, setSizeUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
   const [originalSkuCode, setOriginalSkuCode] = useState("");
@@ -84,8 +89,11 @@ const ProductForm = () => {
         oneRating: productData.oneRating || 0,
         id: productData.id || "",
         ageByCategoryIds: productData.ageByCategoryIds || [],
-        hasColorVariants: productData.hasColorVariants || false,  // NEW
-        colorVariants: productData.colorVariants || [],            // NEW
+        hasColorVariants: productData.hasColorVariants || false,
+        colorVariants: productData.colorVariants || [],
+        hasSizeVariants: productData.hasSizeVariants || false,
+        sizeVariants: productData.sizeVariants || [],
+        unitId: productData.unitId || "",
       });
       setOriginalSkuCode(productData.skuCode || "");
     } else if (isEditMode && !location.state?.productData) {
@@ -165,6 +173,29 @@ const ProductForm = () => {
     };
 
     fetchBrands();
+  }, []);
+
+  // Fetch size units from Firestore
+  useEffect(() => {
+    const fetchSizeUnits = async () => {
+      try {
+        const unitsCollection = collection(db, "size-unit-master");
+        const unitsSnapshot = await getDocs(unitsCollection);
+        const unitsList = unitsSnapshot.docs
+          .map((doc) => ({
+            value: doc.id,
+            label: doc.data().unitName,
+            unitId: doc.data().unitId,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+
+        setSizeUnits(unitsList);
+      } catch (error) {
+        console.error("Error fetching size units:", error);
+      }
+    };
+
+    fetchSizeUnits();
   }, []);
 
   const handleInputChange = (field, value) => {
@@ -271,7 +302,27 @@ const ProductForm = () => {
       newErrors.brandId = "Brand is required";
     }
 
-    // NEW: Color variants validation
+    // Size variants validation
+    if (formData.hasSizeVariants) {
+      if (!formData.unitId) {
+        newErrors.unitId = "Unit is required when size variants are enabled";
+      }
+      if (formData.sizeVariants.length === 0) {
+        newErrors.sizeVariants = "At least one size is required when size variants are enabled";
+      } else {
+        let sizeErrors = [];
+        formData.sizeVariants.forEach((variant, index) => {
+          if (!variant.size.trim()) {
+            sizeErrors.push(`Size ${index + 1}: Size value is required`);
+          }
+        });
+        if (sizeErrors.length > 0) {
+          newErrors.sizeVariants = sizeErrors.join('; ');
+        }
+      }
+    }
+
+    // Color variants validation
     if (formData.hasColorVariants) {
       if (formData.colorVariants.length === 0) {
         newErrors.colorVariants = "At least one color variant is required when color variants are enabled";
@@ -501,6 +552,9 @@ const ProductForm = () => {
         categoryName: selectedCategory?.label || "",
         brandId: formData.brandId,
         brandName: selectedBrand?.label || "",
+        unitId: formData.unitId,
+        hasSizeVariants: formData.hasSizeVariants,
+        sizeVariants: formData.sizeVariants,
         thumbnail: formData.hasColorVariants ? (uploadedColorVariants[0]?.thumbnail || "") : thumbnailUrl,
         productImages: formData.hasColorVariants ? (uploadedColorVariants[0]?.productImages || []) : productImageUrls,
         isActive: formData.isActive,
@@ -757,7 +811,44 @@ const ProductForm = () => {
             required
             disabled={viewMode}
           />
+          <SearchableDropdown
+            label="Unit"
+            options={sizeUnits}
+            value={formData.unitId}
+            onChange={(value) => handleInputChange("unitId", value)}
+            placeholder="Select unit"
+            error={errors.unitId}
+            disabled={viewMode}
+          />
         </div>
+        <div className="col-span-full">
+          <div className="flex items-center space-x-2 mb-4">
+            <input
+              type="checkbox"
+              id="hasSizeVariants"
+              checked={formData.hasSizeVariants}
+              onChange={(e) => handleInputChange("hasSizeVariants", e.target.checked)}
+              className="accent-[#81184e]"
+              disabled={viewMode}
+            />
+            <label htmlFor="hasSizeVariants" className="text-sm font-medium text-gray-700">
+              Enable Multiple Sizes
+            </label>
+            <span className="text-xs text-gray-500">
+              (Check this if product comes in multiple sizes)
+            </span>
+          </div>
+
+          {formData.hasSizeVariants && (
+            <SizeVariantManager
+              variants={formData.sizeVariants}
+              onVariantsChange={(variants) => handleInputChange("sizeVariants", variants)}
+              disabled={viewMode}
+              errors={errors}
+            />
+          )}
+        </div>
+
         <div className="col-span-full">
           <div className="flex items-center space-x-2 mb-4">
             <input

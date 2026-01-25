@@ -49,6 +49,7 @@ import CouponManageList from "./components/pages/CouponManagement/CouponManageLi
 import CancelledOrders from "./components/pages/Orders/CancelledOrders";
 import ReturnOrdersList from "./components/pages/Orders/ReturnedOrders/ReturnOrdersList";
 import ReturnedOrderDetailPage from "./components/pages/Orders/ReturnedOrders/ReturnedOrderDetailPage";
+import SizeUnit from "./components/pages/SizeUnit/SizeUnit";
 
 
 function AppLayout() {
@@ -85,6 +86,8 @@ function AppLayout() {
             <Route path="/master/brand-list" element={<ProtectedRoute><BrandList /></ProtectedRoute>} />
             <Route path="/master/add-brand" element={<ProtectedRoute><BrandForm /></ProtectedRoute>} />
             <Route path="/master/edit-brand/:brandId" element={<ProtectedRoute><BrandForm /></ProtectedRoute>} />
+            {/* Size Unit */}
+            <Route path="/master/size-unit-list" element={<ProtectedRoute><SizeUnit /></ProtectedRoute>} />
             {/* Product */}
             <Route path="/product-list" element={<ProtectedRoute><ProductList /></ProtectedRoute>} />
             <Route path="/add-product" element={<ProtectedRoute><ProductForm /></ProtectedRoute>} />
