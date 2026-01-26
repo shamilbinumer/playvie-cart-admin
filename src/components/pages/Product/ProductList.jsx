@@ -259,6 +259,13 @@ const ProductList = () => {
           oneRating: product.oneRating,
           id: product.id,
           stock: product.stock,
+          ageByCategoryIds: product.ageByCategoryIds || [],
+          featured: product.featured || false,
+          hasColorVariants: product.hasColorVariants || false,
+          colorVariants: product.colorVariants || [],
+          hasSizeVariants: product.hasSizeVariants || false,
+          sizeVariants: product.sizeVariants || [],
+          unitId: product.unitId || "",
         }
       }
     });

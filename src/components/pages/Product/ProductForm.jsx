@@ -66,6 +66,8 @@ const ProductForm = () => {
   useEffect(() => {
     if (isEditMode && location.state?.productData) {
       const productData = location.state.productData;
+      console.log(productData);
+      
       setFormData({
         productName: productData.productName || "",
         productCode: productData.productCode || "",
@@ -314,6 +316,18 @@ const ProductForm = () => {
         formData.sizeVariants.forEach((variant, index) => {
           if (!variant.size.trim()) {
             sizeErrors.push(`Size ${index + 1}: Size value is required`);
+          }
+          if (!variant.mrp || parseFloat(variant.mrp) <= 0) {
+            sizeErrors.push(`Size ${index + 1}: Valid MRP is required`);
+          }
+          if (!variant.salesPrice || parseFloat(variant.salesPrice) <= 0) {
+            sizeErrors.push(`Size ${index + 1}: Valid Sales Price is required`);
+          }
+          if (variant.salesPrice && variant.mrp && parseFloat(variant.salesPrice) > parseFloat(variant.mrp)) {
+            sizeErrors.push(`Size ${index + 1}: Sales Price cannot be greater than MRP`);
+          }
+          if (!variant.purchaseRate || parseFloat(variant.purchaseRate) <= 0) {
+            sizeErrors.push(`Size ${index + 1}: Valid Purchase Rate is required`);
           }
         });
         if (sizeErrors.length > 0) {
