@@ -11,6 +11,7 @@ const ColorVariantManager = ({
   errors = {}
 }) => {
   const [editingIndex, setEditingIndex] = useState(null);
+  const [formKey, setFormKey] = useState(Date.now()); // Add key to force re-render
   const [currentVariant, setCurrentVariant] = useState({
     colorName: "",
     colorCode: "#000000",
@@ -21,6 +22,19 @@ const ColorVariantManager = ({
     isActive: true
   });
 
+  const resetForm = () => {
+    setCurrentVariant({
+      colorName: "",
+      colorCode: "#000000",
+      skuCode: "",
+      thumbnail: null,
+      productImages: [],
+      stock: 0,
+      isActive: true
+    });
+    setFormKey(Date.now()); // Force re-render of image components
+  };
+
   const handleAddVariant = () => {
     if (!currentVariant.colorName || !currentVariant.skuCode) {
       Swal.fire({
@@ -30,6 +44,24 @@ const ColorVariantManager = ({
       });
       return;
     }
+
+    if (!currentVariant.thumbnail) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Thumbnail",
+        text: "Thumbnail image is required",
+      });
+      return;
+    }
+
+    // if (!currentVariant.productImages || currentVariant.productImages.length === 0) {
+    //   Swal.fire({
+    //     icon: "warning",
+    //     title: "Missing Product Images",
+    //     text: "At least one product image is required",
+    //   });
+    //   return;
+    // }
 
     const newVariant = {
       ...currentVariant,
@@ -45,21 +77,14 @@ const ColorVariantManager = ({
       onVariantsChange([...variants, newVariant]);
     }
 
-    // Reset form
-    setCurrentVariant({
-      colorName: "",
-      colorCode: "#000000",
-      skuCode: "",
-      thumbnail: null,
-      productImages: [],
-      stock: 0,
-      isActive: true
-    });
+    // Reset form with new key
+    resetForm();
   };
 
   const handleEditVariant = (index) => {
     setCurrentVariant(variants[index]);
     setEditingIndex(index);
+    setFormKey(Date.now()); // Force re-render with new default images
   };
 
   const handleDeleteVariant = (index) => {
@@ -81,15 +106,7 @@ const ColorVariantManager = ({
 
   const handleCancelEdit = () => {
     setEditingIndex(null);
-    setCurrentVariant({
-      colorName: "",
-      colorCode: "#000000",
-      skuCode: "",
-      thumbnail: null,
-      productImages: [],
-      stock: 0,
-      isActive: true
-    });
+    resetForm();
   };
 
   const handleThumbnailSelect = (file) => {
@@ -182,7 +199,7 @@ const ColorVariantManager = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
+          <div key={`thumbnail-${formKey}`}>
             <SingleImageUpload
               label={`Thumbnail for ${currentVariant.colorName || 'Variant'}`}
               placeholder="Upload variant thumbnail"
@@ -196,7 +213,7 @@ const ColorVariantManager = ({
             />
           </div>
 
-          <div>
+          <div key={`images-${formKey}`}>
             <MultipleImageUpload
               label={`Product Images for ${currentVariant.colorName || 'Variant'}`}
               placeholder="Upload variant product images"
@@ -206,7 +223,7 @@ const ColorVariantManager = ({
               onImagesSelect={handleProductImagesSelect}
               onImagesUpdate={handleProductImagesSelect}
               defaultImages={editingIndex !== null ? currentVariant.productImages : []}
-              required
+
               disabled={disabled}
             />
           </div>

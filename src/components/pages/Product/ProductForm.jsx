@@ -353,9 +353,6 @@ const ProductForm = () => {
           if (!variant.thumbnail) {
             variantErrors.push(`Variant ${index + 1}: Thumbnail is required`);
           }
-          if (!variant.productImages || variant.productImages.length === 0) {
-            variantErrors.push(`Variant ${index + 1}: At least one product image is required`);
-          }
         });
 
         if (variantErrors.length > 0) {
