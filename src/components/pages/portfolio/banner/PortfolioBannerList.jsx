@@ -53,7 +53,7 @@ const PortfolioBannerList = () => {
   }, []);
 
   const handleEdit = (portfolioBanner) => {
-    navigate(`/portfolio-banners/edit-portfolio-banner/${portfolioBanner.id}`, {
+    navigate(`/portfolio/Banner/PortfolioBannerEdit/${portfolioBanner.id}`, {
       state: {
         portfolioBannerData: {
           bannerName: portfolioBanner.bannerName,

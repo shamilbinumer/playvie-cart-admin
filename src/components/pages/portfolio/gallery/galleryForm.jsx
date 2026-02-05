@@ -74,7 +74,7 @@ const PortFolioGalleryForm = () => {
         icon: "error",
         confirmButtonText: "OK",
       }).then(() => {
-        navigate("/master/gallery-list");
+        navigate("/portfolio/gallery/galleryForm");
       });
     }
   }, [isEditMode, location.state, navigate]);

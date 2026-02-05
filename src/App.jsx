@@ -105,12 +105,16 @@ function AppLayout() {
             <Route path="/portfolio/serviceEnquiry" element={<ProtectedRoute><ServiceEnquiryList /></ProtectedRoute>} />
             <Route path="/portfolio/gallery" element={<ProtectedRoute><GalleryList /></ProtectedRoute>} />
             <Route path="/portfolio/gallery/galleryForm" element={<ProtectedRoute><PortFolioGalleryForm /></ProtectedRoute>} />
+            <Route path="/portfolio/gallery/edit-gallery/:galleryId" element={<ProtectedRoute><PortFolioGalleryForm /></ProtectedRoute>} />
             <Route path="/portfolio/blog/Blog" element={<ProtectedRoute><BlogList /></ProtectedRoute>} />
             <Route path="/portfolio/blog/BlogForm" element={<ProtectedRoute><BlogForm /></ProtectedRoute>} />
+            <Route path="/portfolio/blog/edit-blog/:blogId" element={<ProtectedRoute><BlogForm /></ProtectedRoute>} />
             <Route path="/portfolio/service/ServiceForm" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
+            <Route path="/portfolio/service/edit-service/:serviceId" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
             <Route path="/portfolio/service/ServiceList" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
             <Route path="/portfolio/Banner/PortfolioBannerList" element={<ProtectedRoute><PortfolioBannerList/></ProtectedRoute>} />
             <Route path="/portfolio/Banner/PortfolioBannerForm" element={<ProtectedRoute><PortfolioBannersForm/></ProtectedRoute>} />
+            <Route path="/portfolio/Banner/PortfolioBannerEdit/:portfolioBannerId" element={<ProtectedRoute><PortfolioBannersForm/></ProtectedRoute>} />
             {/* PlaySchool Website */}
             <Route path="/playschool/admissionEnquiry" element={<ProtectedRoute><AdmissionEnquiryList /></ProtectedRoute>} />
             <Route path="/playschool/galley-list" element={<ProtectedRoute><PlayschoolGalleyList /></ProtectedRoute>} />

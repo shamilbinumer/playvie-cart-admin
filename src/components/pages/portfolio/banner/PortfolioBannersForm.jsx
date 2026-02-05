@@ -51,7 +51,7 @@ const PortfolioBannersForm = () => {
         icon: "error",
         confirmButtonText: "OK",
       }).then(() => {
-        navigate("/portfolio-banners/portfolio-banner-list");
+        navigate("/portfolio/Banner/PortfolioBannerList");
       });
     }
   }, [isEditMode, location.state, navigate, portfolioBannerId]);
