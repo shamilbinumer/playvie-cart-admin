@@ -245,7 +245,7 @@ const PortfolioBannersForm = () => {
           timer: 2000,
           toast: true,
         });
-        navigate("/portfolio-banners/portfolio-banner-list");
+        navigate("/portfolio/Banner/PortfolioBannerList");
       } else {
         // Create new portfolio banner
         const docRef = doc(collection(db, "portfolioBanner"));

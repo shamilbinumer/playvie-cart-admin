@@ -67,7 +67,7 @@ const ProductForm = () => {
     if (isEditMode && location.state?.productData) {
       const productData = location.state.productData;
       console.log(productData);
-      
+
       setFormData({
         productName: productData.productName || "",
         productCode: productData.productCode || "",
@@ -664,7 +664,14 @@ const ProductForm = () => {
         />
       )}
       <FormContainer
-        title={isEditMode ? "Edit Product" : "Add Product"}
+       title={
+  viewMode
+    ? "View Product"
+    : isEditMode
+    ? "Edit Product"
+    : "Add Product"
+}
+
         onCancel={handleCancel}
         onSubmit={handleSubmit}
         cancelText={viewMode ? null : "Cancel"}
@@ -677,304 +684,308 @@ const ProductForm = () => {
         })}
 
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <TextInput
-            label="Product Name"
-            placeholder="Enter product name"
-            value={formData.productName}
-            onChange={(value) => handleInputChange("productName", value)}
-            error={errors.productName}
-            disabled={viewMode}
-            required
-          />
-          <TextInput
-            label="Product Code"
-            placeholder="Enter product code"
-            value={formData.productCode}
-            onChange={(value) => handleInputChange("productCode", value)}
-            error={errors.productCode}
-            disabled={viewMode}
-            required
-          />
-          <TextInput
-            label="SKU Code"
-            placeholder="Enter SKU code"
-            value={formData.skuCode}
-            onChange={(value) => handleInputChange("skuCode", value)}
-            error={errors.skuCode}
-            disabled={viewMode}
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <TextArea
-            label="Short Description"
-            placeholder="Enter short description"
-            value={formData.shortDescription}
-            onChange={(value) => handleInputChange("shortDescription", value)}
-            error={errors.shortDescription}
-            required
-            disabled={viewMode}
-            rows={3}
-          />
-          <TextArea
-            label="Long Description"
-            placeholder="Enter detailed description"
-            value={formData.longDescription}
-            onChange={(value) => handleInputChange("longDescription", value)}
-            error={errors.longDescription}
-            required
-            rows={3}
-            disabled={viewMode}
-            maxLength={1000}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
-          <TextInput
-            label="MRP"
-            placeholder="MRP"
-            value={formData.mrp}
-            onChange={(value) => handleInputChange("mrp", value)}
-            error={errors.mrp}
-            required
-            type="number"
-            disabled={viewMode}
-            min="0"
-            step="0.01"
-          />
-          <TextInput
-            label="Sales Price"
-            placeholder="Sales price"
-            value={formData.salesPrice}
-            onChange={(value) => handleInputChange("salesPrice", value)}
-            error={errors.salesPrice}
-            required
-            type="number"
-            disabled={viewMode}
-            min="0"
-            step="0.01"
-          />
-          <TextInput
-            label="Purchase Rate"
-            placeholder="Purchase rate"
-            value={formData.purchaseRate}
-            onChange={(value) => handleInputChange("purchaseRate", value)}
-            error={errors.purchaseRate}
-            required
-            type="number"
-            min="0"
-            disabled={viewMode}
-            step="0.01"
-          />
-          <TextInput
-            label="Stock Quantity"
-            placeholder="Stock"
-            value={formData.stock}
-            onChange={(value) => handleInputChange("stock", value)}
-            error={errors.stock}
-            required
-            type="number"
-            min="0"
-            disabled={viewMode}
-          />
-          <TextInput
-            label="Handling Time"
-            placeholder="Days"
-            value={formData.handlingTime}
-            onChange={(value) => handleInputChange("handlingTime", value)}
-            error={errors.handlingTime}
-            required
-            type="number"
-            min="0"
-            disabled={viewMode}
-          />
-          <SearchableDropdown
-            label="Category"
-            options={categories}
-            value={formData.categoryId}
-            onChange={(value) => handleInputChange("categoryId", value)}
-            placeholder="Select category"
-            error={errors.categoryId}
-            required
-            multiple
-            disabled={viewMode}
-          />
-          <SearchableDropdown
-            label="Age By Category"
-            options={ageByCategories}
-            value={formData.ageByCategoryIds}
-            onChange={(value) => handleInputChange("ageByCategoryIds", value)}
-            placeholder="Select age by category"
-            error={errors.ageByCategoryIds}
-            required
-            multiple
-            disabled={viewMode}
-          />
-          <SearchableDropdown
-            label="Brand"
-            options={brands}
-            value={formData.brandId}
-            onChange={(value) => handleInputChange("brandId", value)}
-            placeholder="Select brand"
-            error={errors.brandId}
-            required
-            disabled={viewMode}
-          />
-          <SearchableDropdown
-            label="Unit"
-            options={sizeUnits}
-            value={formData.unitId}
-            onChange={(value) => handleInputChange("unitId", value)}
-            placeholder="Select unit"
-            error={errors.unitId}
-            disabled={viewMode}
-          />
-        </div>
-        <div className="col-span-full">
-          <div className="flex items-center space-x-2 mb-4">
-            <input
-              type="checkbox"
-              id="hasSizeVariants"
-              checked={formData.hasSizeVariants}
-              onChange={(e) => handleInputChange("hasSizeVariants", e.target.checked)}
-              className="accent-[#81184e]"
-              disabled={viewMode}
-            />
-            <label htmlFor="hasSizeVariants" className="text-sm font-medium text-gray-700">
-              Enable Multiple Sizes
-            </label>
-            <span className="text-xs text-gray-500">
-              (Check this if product comes in multiple sizes)
-            </span>
-          </div>
-
-          {formData.hasSizeVariants && (
-            <SizeVariantManager
-              variants={formData.sizeVariants}
-              onVariantsChange={(variants) => handleInputChange("sizeVariants", variants)}
-              disabled={viewMode}
-              errors={errors}
-            />
-          )}
-        </div>
-
-        <div className="col-span-full">
-          <div className="flex items-center space-x-2 mb-4">
-            <input
-              type="checkbox"
-              id="hasColorVariants"
-              checked={formData.hasColorVariants}
-              onChange={(e) => handleInputChange("hasColorVariants", e.target.checked)}
-              className="accent-[#81184e]"
-              disabled={viewMode}
-            />
-            <label htmlFor="hasColorVariants" className="text-sm font-medium text-gray-700">
-              Enable Color Variants
-            </label>
-            <span className="text-xs text-gray-500">
-              (Check this if product comes in multiple colors)
-            </span>
-          </div>
-
-          {formData.hasColorVariants && (
-            <ColorVariantManager
-              variants={formData.colorVariants}
-              onVariantsChange={(variants) => handleInputChange("colorVariants", variants)}
-              disabled={viewMode}
-              errors={errors}
-            />
-          )}
-        </div>
-
-      {
-        !formData.hasColorVariants && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {viewMode && (
-            <>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Thumbnail
-              </label>
-              <div className="w-20 h-20 overflow-hidden rounded-md">
-                <img src={formData.thumbnail} alt="" />
-              </div>
-            </>
-          )}
-
-          {
-            !viewMode && <div>
-              <div>
-                <SingleImageUpload
-                  label="Thumbnail"
-                  placeholder="Upload thumbnail"
-                  maxSizeKB={200}
-                  acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-                  onImageSelect={(image) => handleInputChange("thumbnail", image)}
-                  onImageRemove={() => handleInputChange("thumbnail", null)}
-                  defaultImage={isEditMode ? formData.thumbnail : null}
-                  required
-                  disabled={viewMode}
-                />
-                {errors.thumbnail && (
-                  <p className="mt-1 text-sm text-red-600">{errors.thumbnail}</p>
-                )}
-              </div>
+        {!viewMode && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <TextInput
+                label="Product Name"
+                placeholder="Enter product name"
+                value={formData.productName}
+                onChange={(value) => handleInputChange("productName", value)}
+                error={errors.productName}
+                disabled={viewMode}
+                required
+              />
+              <TextInput
+                label="Product Code"
+                placeholder="Enter product code"
+                value={formData.productCode}
+                onChange={(value) => handleInputChange("productCode", value)}
+                error={errors.productCode}
+                disabled={viewMode}
+                required
+              />
+              <TextInput
+                label="SKU Code"
+                placeholder="Enter SKU code"
+                value={formData.skuCode}
+                onChange={(value) => handleInputChange("skuCode", value)}
+                error={errors.skuCode}
+                disabled={viewMode}
+                required
+              />
             </div>
-          }
-          {viewMode && (
-            <>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Images
-              </label>
-              {
-                formData.productImages.length === 0 ? (
-                  <p>No images available</p>
-                ) : (
-                  <div className="flex space-x-2 overflow-x-auto">
-                    {formData.productImages.map((imgUrl, index) => (
-                      <div key={index} className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-md">
-                        <img src={imgUrl} alt={`Product ${index + 1}`} />
-                      </div>
-                    ))}
-                  </div>
-                )
-              }
-            </>
-          )}
-          {!viewMode && <div>
-            <div>
-              <MultipleImageUpload
-                label="Product Images"
-                placeholder="Upload product images"
-                maxSizeKB={500}
-                maxImages={5}
-                acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-                onImagesSelect={(images) => handleInputChange("productImages", images)}
-                onImagesUpdate={(images) => handleInputChange("productImages", images)}
-                defaultImages={isEditMode ? formData.productImages : []}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextArea
+                label="Short Description"
+                placeholder="Enter short description"
+                value={formData.shortDescription}
+                onChange={(value) => handleInputChange("shortDescription", value)}
+                error={errors.shortDescription}
+                required
+                disabled={viewMode}
+                rows={3}
+              />
+              <TextArea
+                label="Long Description"
+                placeholder="Enter detailed description"
+                value={formData.longDescription}
+                onChange={(value) => handleInputChange("longDescription", value)}
+                error={errors.longDescription}
+                required
+                rows={3}
+                disabled={viewMode}
+                maxLength={1000}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+              <TextInput
+                label="MRP"
+                placeholder="MRP"
+                value={formData.mrp}
+                onChange={(value) => handleInputChange("mrp", value)}
+                error={errors.mrp}
+                required
+                type="number"
+                disabled={viewMode}
+                min="0"
+                step="0.01"
+              />
+              <TextInput
+                label="Sales Price"
+                placeholder="Sales price"
+                value={formData.salesPrice}
+                onChange={(value) => handleInputChange("salesPrice", value)}
+                error={errors.salesPrice}
+                required
+                type="number"
+                disabled={viewMode}
+                min="0"
+                step="0.01"
+              />
+              <TextInput
+                label="Purchase Rate"
+                placeholder="Purchase rate"
+                value={formData.purchaseRate}
+                onChange={(value) => handleInputChange("purchaseRate", value)}
+                error={errors.purchaseRate}
+                required
+                type="number"
+                min="0"
+                disabled={viewMode}
+                step="0.01"
+              />
+              <TextInput
+                label="Stock Quantity"
+                placeholder="Stock"
+                value={formData.stock}
+                onChange={(value) => handleInputChange("stock", value)}
+                error={errors.stock}
+                required
+                type="number"
+                min="0"
+                disabled={viewMode}
+              />
+              <TextInput
+                label="Handling Time"
+                placeholder="Days"
+                value={formData.handlingTime}
+                onChange={(value) => handleInputChange("handlingTime", value)}
+                error={errors.handlingTime}
+                required
+                type="number"
+                min="0"
+                disabled={viewMode}
+              />
+              <SearchableDropdown
+                label="Category"
+                options={categories}
+                value={formData.categoryId}
+                onChange={(value) => handleInputChange("categoryId", value)}
+                placeholder="Select category"
+                error={errors.categoryId}
+                required
+                multiple
+                disabled={viewMode}
+              />
+              <SearchableDropdown
+                label="Age By Category"
+                options={ageByCategories}
+                value={formData.ageByCategoryIds}
+                onChange={(value) => handleInputChange("ageByCategoryIds", value)}
+                placeholder="Select age by category"
+                error={errors.ageByCategoryIds}
+                required
+                multiple
+                disabled={viewMode}
+              />
+              <SearchableDropdown
+                label="Brand"
+                options={brands}
+                value={formData.brandId}
+                onChange={(value) => handleInputChange("brandId", value)}
+                placeholder="Select brand"
+                error={errors.brandId}
                 required
                 disabled={viewMode}
               />
-              {errors.productImages && (
-                <p className="mt-1 text-sm text-red-600">{errors.productImages}</p>
-              )}
-            </div></div>}
-        </div>
-        )
-      }
+              <SearchableDropdown
+                label="Unit"
+                options={sizeUnits}
+                value={formData.unitId}
+                onChange={(value) => handleInputChange("unitId", value)}
+                placeholder="Select unit"
+                error={errors.unitId}
+                disabled={viewMode}
+              />
+            </div>
+            <div className="col-span-full">
+              <div className="flex items-center space-x-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="hasSizeVariants"
+                  checked={formData.hasSizeVariants}
+                  onChange={(e) => handleInputChange("hasSizeVariants", e.target.checked)}
+                  className="accent-[#81184e]"
+                  disabled={viewMode}
+                />
+                <label htmlFor="hasSizeVariants" className="text-sm font-medium text-gray-700">
+                  Enable Multiple Sizes
+                </label>
+                <span className="text-xs text-gray-500">
+                  (Check this if product comes in multiple sizes)
+                </span>
+              </div>
 
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            disabled={viewMode}
-            id="isActive"
-            checked={formData.isActive}
-            onChange={(e) => handleInputChange("isActive", e.target.checked)}
-            className="accent-[#81184e]"
-          />
-          <label htmlFor="isActive">Is Active</label>
-        </div>
+              {formData.hasSizeVariants && (
+                <SizeVariantManager
+                  variants={formData.sizeVariants}
+                  onVariantsChange={(variants) => handleInputChange("sizeVariants", variants)}
+                  disabled={viewMode}
+                  errors={errors}
+                />
+              )}
+            </div>
+
+            <div className="col-span-full">
+              <div className="flex items-center space-x-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="hasColorVariants"
+                  checked={formData.hasColorVariants}
+                  onChange={(e) => handleInputChange("hasColorVariants", e.target.checked)}
+                  className="accent-[#81184e]"
+                  disabled={viewMode}
+                />
+                <label htmlFor="hasColorVariants" className="text-sm font-medium text-gray-700">
+                  Enable Color Variants
+                </label>
+                <span className="text-xs text-gray-500">
+                  (Check this if product comes in multiple colors)
+                </span>
+              </div>
+
+              {formData.hasColorVariants && (
+                <ColorVariantManager
+                  variants={formData.colorVariants}
+                  onVariantsChange={(variants) => handleInputChange("colorVariants", variants)}
+                  disabled={viewMode}
+                  errors={errors}
+                />
+              )}
+            </div>
+
+            {
+              !formData.hasColorVariants && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {viewMode && (
+                    <>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Thumbnail
+                      </label>
+                      <div className="w-20 h-20 overflow-hidden rounded-md">
+                        <img src={formData.thumbnail} alt="" />
+                      </div>
+                    </>
+                  )}
+
+                  {
+                    !viewMode && <div>
+                      <div>
+                        <SingleImageUpload
+                          label="Thumbnail"
+                          placeholder="Upload thumbnail"
+                          maxSizeKB={200}
+                          acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+                          onImageSelect={(image) => handleInputChange("thumbnail", image)}
+                          onImageRemove={() => handleInputChange("thumbnail", null)}
+                          defaultImage={isEditMode ? formData.thumbnail : null}
+                          required
+                          disabled={viewMode}
+                        />
+                        {errors.thumbnail && (
+                          <p className="mt-1 text-sm text-red-600">{errors.thumbnail}</p>
+                        )}
+                      </div>
+                    </div>
+                  }
+                  {viewMode && (
+                    <>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Product Images
+                      </label>
+                      {
+                        formData.productImages.length === 0 ? (
+                          <p>No images available</p>
+                        ) : (
+                          <div className="flex space-x-2 overflow-x-auto">
+                            {formData.productImages.map((imgUrl, index) => (
+                              <div key={index} className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-md">
+                                <img src={imgUrl} alt={`Product ${index + 1}`} />
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      }
+                    </>
+                  )}
+                  {!viewMode && <div>
+                    <div>
+                      <MultipleImageUpload
+                        label="Product Images"
+                        placeholder="Upload product images"
+                        maxSizeKB={500}
+                        maxImages={5}
+                        acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+                        onImagesSelect={(images) => handleInputChange("productImages", images)}
+                        onImagesUpdate={(images) => handleInputChange("productImages", images)}
+                        defaultImages={isEditMode ? formData.productImages : []}
+                        required
+                        disabled={viewMode}
+                      />
+                      {errors.productImages && (
+                        <p className="mt-1 text-sm text-red-600">{errors.productImages}</p>
+                      )}
+                    </div></div>}
+                </div>
+              )
+            }
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                disabled={viewMode}
+                id="isActive"
+                checked={formData.isActive}
+                onChange={(e) => handleInputChange("isActive", e.target.checked)}
+                className="accent-[#81184e]"
+              />
+              <label htmlFor="isActive">Is Active</label>
+            </div>
+          </>
+        )}
         <ProductPreview formData={formData} />
       </FormContainer>
     </>

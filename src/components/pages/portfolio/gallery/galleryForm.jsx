@@ -194,7 +194,7 @@ const PortFolioGalleryForm = () => {
         });
       }
 
-      navigate("/master/gallery-list");
+      navigate("/portfolio/gallery");
     } catch (error) {
       console.error("Error saving gallery item:", error);
       Swal.fire("Error!", "Something went wrong.", "error");
