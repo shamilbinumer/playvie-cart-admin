@@ -31,7 +31,6 @@ const PortfolioBannerList = () => {
       try {
         setLoading(true);
         setError(null);
-        console.log("Fetching portfolio banners...");
         
         const querySnapshot = await getDocs(collection(db, "portfolioBanner"));
         const portfolioBannerList = querySnapshot.docs.map((doc, index) => ({
@@ -39,7 +38,6 @@ const PortfolioBannerList = () => {
           ...doc.data(),
           index: index + 1,
         }));
-        console.log(portfolioBannerList, "portfolio banners");
         setPortfolioBanners(portfolioBannerList);
       } catch (error) {
         console.error("Error fetching portfolio banners: ", error);
@@ -81,7 +79,7 @@ const PortfolioBannerList = () => {
 
     if (result.isConfirmed) {
       try {
-        await deleteDoc(doc(db, "PortfolioBanner", portfolioBanner.id));
+        await deleteDoc(doc(db, "portfolioBanner", portfolioBanner.id));
 
         // update state without re-fetching
         setPortfolioBanners((prev) => prev.filter((b) => b.id !== portfolioBanner.id));

@@ -18,6 +18,8 @@
     "@tailwindcss/vite": "^4.1.12",
     "browser-image-compression": "^2.0.2",
     "crypto-js": "^4.2.0",
+    "exceljs": "^4.4.0",
+    "file-saver": "^2.0.5",
     "firebase": "^12.3.0",
     "framer-motion": "^12.23.21",
     "lucide-react": "^0.542.0",

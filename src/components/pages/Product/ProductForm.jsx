@@ -329,6 +329,9 @@ const ProductForm = () => {
           if (!variant.purchaseRate || parseFloat(variant.purchaseRate) <= 0) {
             sizeErrors.push(`Size ${index + 1}: Valid Purchase Rate is required`);
           }
+          if (!variant.thumbnail) {
+            sizeErrors.push(`Size ${index + 1}: Thumbnail image is required`);
+          }
         });
         if (sizeErrors.length > 0) {
           newErrors.sizeVariants = sizeErrors.join('; ');
@@ -487,6 +490,40 @@ const ProductForm = () => {
       let thumbnailUrl = formData.thumbnail;
       let productImageUrls = [];
       let uploadedColorVariants = [];
+      let uploadedSizeVariants = [];
+
+      // NEW: Handle size variants
+      if (formData.hasSizeVariants) {
+        // Upload images for each size variant
+        for (const variant of formData.sizeVariants) {
+          try {
+            // Upload variant thumbnail
+            const variantThumbnailUrl = await uploadToImgBB(variant.thumbnail);
+
+            // Upload variant product images
+            const variantImageUrls = [];
+            if (variant.productImages && variant.productImages.length > 0) {
+              for (const img of variant.productImages) {
+                const url = await uploadToImgBB(img);
+                if (url) variantImageUrls.push(url);
+              }
+            }
+
+            uploadedSizeVariants.push({
+              size: variant.size,
+              mrp: variant.mrp,
+              salesPrice: variant.salesPrice,
+              purchaseRate: variant.purchaseRate,
+              thumbnail: variantThumbnailUrl,
+              productImages: variantImageUrls,
+              isActive: variant.isActive
+            });
+          } catch (error) {
+            console.error(`Error uploading images for size ${variant.size}:`, error);
+            throw new Error(`Failed to upload images for size ${variant.size}: ${error.message}`);
+          }
+        }
+      }
 
       // NEW: Handle color variants
       if (formData.hasColorVariants) {
@@ -546,7 +583,9 @@ const ProductForm = () => {
       // Calculate total stock for variant products
       const totalStock = formData.hasColorVariants
         ? uploadedColorVariants.reduce((sum, v) => sum + v.stock, 0)
-        : Number(formData.stock);
+        : formData.hasSizeVariants
+          ? uploadedSizeVariants.reduce((sum, v) => sum + 0, 0) // Size variants don't have stock field
+          : Number(formData.stock);
 
       // Prepare product data
       const productData = {
@@ -565,9 +604,11 @@ const ProductForm = () => {
         brandName: selectedBrand?.label || "",
         unitId: formData.unitId,
         hasSizeVariants: formData.hasSizeVariants,
-        sizeVariants: formData.sizeVariants,
-        thumbnail: formData.hasColorVariants ? (uploadedColorVariants[0]?.thumbnail || "") : thumbnailUrl,
-        productImages: formData.hasColorVariants ? (uploadedColorVariants[0]?.productImages || []) : productImageUrls,
+        sizeVariants: uploadedSizeVariants,
+        hasColorVariants: formData.hasColorVariants,
+        colorVariants: uploadedColorVariants,
+        thumbnail: formData.hasColorVariants ? (uploadedColorVariants[0]?.thumbnail || "") : formData.hasSizeVariants ? (uploadedSizeVariants[0]?.thumbnail || "") : thumbnailUrl,
+        productImages: formData.hasColorVariants ? (uploadedColorVariants[0]?.productImages || []) : formData.hasSizeVariants ? (uploadedSizeVariants[0]?.productImages || []) : productImageUrls,
         isActive: formData.isActive,
         oneRating: formData.oneRating,
         twoRating: formData.twoRating,
@@ -578,8 +619,6 @@ const ProductForm = () => {
         updatedAt: serverTimestamp(),
         ageByCategoriesIds: formData.ageByCategoryIds,
         featured: formData.featured || false,
-        hasColorVariants: formData.hasColorVariants,  // NEW
-        colorVariants: uploadedColorVariants,         // NEW
       };
 
       if (isEditMode) {

@@ -109,7 +109,7 @@ const MainCategoryList = () => {
 
     if (column.key === "thumbnailImage") {
       return (
-        <div className="w-15 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="w-15 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
           {item[column.key] ? (
             <img
               src={item[column.key]}

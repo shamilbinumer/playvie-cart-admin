@@ -1,13 +1,18 @@
 import React, { useState } from "react";
-import { Trash2, Plus } from "lucide-react";
-import TextInput from "../../layout/TextInput";
+import { Trash2, Plus, Check, X } from "lucide-react";
+import SingleImageUpload from "../../layout/SingleImageUpload";
+import MultipleImageUpload from "../../layout/MultipleImagesUpload";
+import Swal from "sweetalert2";
 
 const SizeVariantManager = ({ variants = [], onVariantsChange, errors, disabled = false }) => {
   const [newSize, setNewSize] = useState("");
   const [newMrp, setNewMrp] = useState("");
   const [newSalesPrice, setNewSalesPrice] = useState("");
   const [newPurchaseRate, setNewPurchaseRate] = useState("");
+  const [newThumbnail, setNewThumbnail] = useState(null);
+  const [newProductImages, setNewProductImages] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [formKey, setFormKey] = useState(Date.now());
 
   const handleAddSize = () => {
     if (!newSize.trim()) {
@@ -20,11 +25,22 @@ const SizeVariantManager = ({ variants = [], onVariantsChange, errors, disabled 
       return;
     }
 
+    if (!newThumbnail) {
+      Swal.fire({
+        icon: "warning",
+        title: "Missing Thumbnail",
+        text: "Thumbnail image is required for size variant",
+      });
+      return;
+    }
+
     const newVariant = {
       size: newSize.trim(),
       mrp: newMrp,
       salesPrice: newSalesPrice,
       purchaseRate: newPurchaseRate,
+      thumbnail: newThumbnail,
+      productImages: newProductImages,
       isActive: true,
     };
 
@@ -42,10 +58,25 @@ const SizeVariantManager = ({ variants = [], onVariantsChange, errors, disabled 
     }
 
     // Reset form
+    resetForm();
+  };
+
+  const resetForm = () => {
     setNewSize("");
     setNewMrp("");
     setNewSalesPrice("");
     setNewPurchaseRate("");
+    setNewThumbnail(null);
+    setNewProductImages([]);
+    setFormKey(Date.now());
+  };
+
+  const handleThumbnailSelect = (file) => {
+    setNewThumbnail(file);
+  };
+
+  const handleProductImagesSelect = (files) => {
+    setNewProductImages(files);
   };
 
   const handleRemoveSize = (index) => {
@@ -53,10 +84,7 @@ const SizeVariantManager = ({ variants = [], onVariantsChange, errors, disabled 
     onVariantsChange(updatedVariants);
     if (editingIndex === index) {
       setEditingIndex(null);
-      setNewSize("");
-      setNewMrp("");
-      setNewSalesPrice("");
-      setNewPurchaseRate("");
+      resetForm();
     }
   };
 
@@ -66,15 +94,15 @@ const SizeVariantManager = ({ variants = [], onVariantsChange, errors, disabled 
     setNewMrp(variant.mrp || "");
     setNewSalesPrice(variant.salesPrice || "");
     setNewPurchaseRate(variant.purchaseRate || "");
+    setNewThumbnail(variant.thumbnail || null);
+    setNewProductImages(variant.productImages || []);
     setEditingIndex(index);
+    setFormKey(Date.now());
   };
 
   const handleCancelEdit = () => {
+    resetForm();
     setEditingIndex(null);
-    setNewSize("");
-    setNewMrp("");
-    setNewSalesPrice("");
-    setNewPurchaseRate("");
   };
 
   const handleToggleActive = (index) => {
@@ -85,7 +113,9 @@ const SizeVariantManager = ({ variants = [], onVariantsChange, errors, disabled 
 
   return (
     <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Size Variants</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">
+        {editingIndex !== null ? "Edit Size Variant" : "Add Size Variant"}
+      </h3>
 
       {/* Add Size Input */}
       <div className="flex flex-col gap-4 mb-4">
@@ -135,7 +165,7 @@ const SizeVariantManager = ({ variants = [], onVariantsChange, errors, disabled 
             disabled={disabled || !newSize.trim()}
             className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
-            <Plus width={18} />
+            {editingIndex !== null ? <Check width={18} /> : <Plus width={18} />}
             {editingIndex !== null ? "Update" : "Add"}
           </button>
           {editingIndex !== null && (
@@ -145,9 +175,44 @@ const SizeVariantManager = ({ variants = [], onVariantsChange, errors, disabled 
               disabled={disabled}
               className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:opacity-50"
             >
+              <X width={18} />
               Cancel
             </button>
           )}
+        </div>
+
+        {/* Image Upload Section */}
+        <div className="border-t pt-4 mt-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Images for Size: {newSize || "New Size"}</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div key={`thumbnail-${formKey}`}>
+              <SingleImageUpload
+                label="Thumbnail"
+                placeholder="Upload size thumbnail"
+                maxSizeKB={200}
+                acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+                onImageSelect={handleThumbnailSelect}
+                onImageRemove={() => setNewThumbnail(null)}
+                defaultImage={editingIndex !== null ? newThumbnail : null}
+                required
+                disabled={disabled}
+              />
+            </div>
+
+            <div key={`images-${formKey}`}>
+              <MultipleImageUpload
+                label="Product Images"
+                placeholder="Upload product images for this size"
+                maxSizeKB={500}
+                maxImages={5}
+                acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+                onImagesSelect={handleProductImagesSelect}
+                onImagesUpdate={handleProductImagesSelect}
+                defaultImages={editingIndex !== null ? newProductImages : []}
+                disabled={disabled}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -178,6 +243,26 @@ const SizeVariantManager = ({ variants = [], onVariantsChange, errors, disabled 
                 {/* Size Display */}
                 <div className="flex-1">
                   <p className="font-semibold text-gray-800">{variant.size}</p>
+                </div>
+
+                {/* Thumbnail and Images Preview */}
+                <div className="flex gap-2 items-center">
+                  {variant.thumbnail && (
+                    <img 
+                      src={typeof variant.thumbnail === 'string' 
+                        ? variant.thumbnail 
+                        : URL.createObjectURL(variant.thumbnail)
+                      }
+                      alt={`Size ${variant.size}`}
+                      className="w-12 h-12 object-cover rounded-md border"
+                      title="Size thumbnail"
+                    />
+                  )}
+                  {variant.productImages && variant.productImages.length > 0 && (
+                    <div className="text-xs text-gray-500 whitespace-nowrap">
+                      +{variant.productImages.length} images
+                    </div>
+                  )}
                 </div>
 
                 {/* Edit Delete Buttons */}

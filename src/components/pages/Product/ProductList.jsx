@@ -34,7 +34,7 @@ const ProductList = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   // Store document snapshots for pagination
   const [lastDocs, setLastDocs] = useState({});
@@ -371,7 +371,7 @@ const ProductList = () => {
 
     if (column.key === "thumbnail") {
       return (
-        <div className="w-15 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="w-15 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
           {item[column.key] ? (
             <img
               src={item[column.key]}
@@ -483,6 +483,7 @@ const ProductList = () => {
             onPageChange={handlePageChange}
             onItemsPerPageChange={handleItemsPerPageChange}
             loading={tableLoading}
+            pageItemsCount={[50, 100, 200, 500,1000]} // Pass the page items count options
           />
         </div>
       </div>

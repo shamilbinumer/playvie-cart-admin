@@ -11,6 +11,8 @@ import Preloader from '../../common/Preloader';
 import Swal from 'sweetalert2';
 import { Eye, ShoppingCart } from 'lucide-react';
 import * as XLSX from "xlsx";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 
 const CustomerList = () => {
@@ -224,27 +226,90 @@ const CustomerList = () => {
       return total + (item.productPrice * (item.qty || 1));
     }, 0);
   };
-  const handleDownloadExcel = () => {
-    if (!users || users.length === 0) {
-      Swal.fire("No Data", "No users available to download", "info");
-      return;
-    }
+ // Replace your existing handleDownloadExcel function with this one.
+// Make sure you have: import * as XLSX from "xlsx";
+// SheetJS (xlsx) supports basic cell styling via the xlsx-style fork,
+// but the standard 'xlsx' package used in most React projects does NOT support styling.
+// 
+// RECOMMENDED: Use the 'exceljs' library instead for full styling support.
+// Run: npm install exceljs file-saver
+// Then add: import ExcelJS from 'exceljs'; import { saveAs } from 'file-saver';
 
-    // Prepare the data
-    const excelData = users.map(user => ({
-      Name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-      Email: user.email || "-",
-      Phone: user.phone || "-"
-    }));
 
-    // Convert to worksheet
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
 
-    // Download file
-    XLSX.writeFile(workbook, "Customer_List.xlsx");
+const handleDownloadExcel = async () => {
+  if (!users || users.length === 0) {
+    Swal.fire("No Data", "No users available to download", "info");
+    return;
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Customers');
+
+  // ── Column widths ──────────────────────────────────────────────
+  worksheet.columns = [
+    { key: 'name',  width: 28 },
+    { key: 'email', width: 38 },
+    { key: 'phone', width: 22 },
+  ];
+
+  // ── Row 1: Merged header banner ────────────────────────────────
+  worksheet.mergeCells('A1:C1');
+  const titleCell = worksheet.getCell('A1');
+  titleCell.value = 'Playviecart Customer List';
+  titleCell.font   = { name: 'Arial', bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+  titleCell.fill   = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF217346' } }; // Excel green
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getRow(1).height = 36;
+
+  // ── Row 2: Column headings ─────────────────────────────────────
+  const headerRow = worksheet.addRow(['Name', 'Email', 'Phone']);
+  headerRow.eachCell((cell) => {
+    cell.font  = { name: 'Arial', bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+    cell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2E7D32' } }; // darker green
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.border = {
+      top:    { style: 'thin', color: { argb: 'FF145A24' } },
+      left:   { style: 'thin', color: { argb: 'FF145A24' } },
+      bottom: { style: 'thin', color: { argb: 'FF145A24' } },
+      right:  { style: 'thin', color: { argb: 'FF145A24' } },
+    };
+  });
+  headerRow.height = 24;
+
+  // ── Data rows ──────────────────────────────────────────────────
+  const borderStyle = {
+    top:    { style: 'thin', color: { argb: 'FFBDBDBD' } },
+    left:   { style: 'thin', color: { argb: 'FFBDBDBD' } },
+    bottom: { style: 'thin', color: { argb: 'FFBDBDBD' } },
+    right:  { style: 'thin', color: { argb: 'FFBDBDBD' } },
   };
+
+  users.forEach((user, i) => {
+    const row = worksheet.addRow([
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() || '-',
+      user.email || '-',
+      user.phone || '-',
+    ]);
+
+    // Alternating row fill
+    const rowFill = i % 2 === 0
+      ? { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } }
+      : { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } }; // light green tint
+
+    row.eachCell((cell) => {
+      cell.font      = { name: 'Arial', size: 10 };
+      cell.fill      = rowFill;
+      cell.border    = borderStyle;
+      cell.alignment = { vertical: 'middle' };
+    });
+    row.height = 20;
+  });
+
+  // ── Save ───────────────────────────────────────────────────────
+  const buffer = await workbook.xlsx.writeBuffer();
+  saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'Customer_List.xlsx');
+};
 
   const generateEmailContent = () => {
     const subject = 'Complete Your Purchase - Items in Your Cart';
