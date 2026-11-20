@@ -94,7 +94,7 @@ function AppLayout() {
             <Route path="/banners/edit-banner/:bannerId" element={<ProtectedRoute><BannersForm /></ProtectedRoute>} />
             {/* Users */}
             <Route path="/users/customers" element={<ProtectedRoute><CustomerList /></ProtectedRoute>} />
-            <Route path="/users/customers/:customerName/:customerId" element={<ProtectedRoute><CustomerDetails /></ProtectedRoute>} />
+            <Route path="/users/customers/:customerName/:customerId" element={<ProtectedRoute><CustomerDetails/></ProtectedRoute>} />
             <Route path="/users/admins" element={<ProtectedRoute><UsersList /></ProtectedRoute>} />
             {/* Portfolio */}
             <Route path="/portfolio/serviceEnquiry" element={<ProtectedRoute><ServiceEnquiryList /></ProtectedRoute>} />
@@ -113,7 +113,7 @@ function AppLayout() {
             <Route path="/playschool/edit-gallery/:galleryId" element={<ProtectedRoute><PlayschoolGalleryForm /></ProtectedRoute>} />
             <Route path="/playschool/franchiseEnquiry" element={<ProtectedRoute><FranchiseEnquiryList /></ProtectedRoute>} />
             {/* Orders */}
-            <Route path="/orders/order-list" element={<ProtectedRoute><OrderList /></ProtectedRoute>} />
+            <Route path="/orders/order-list" element={<ProtectedRoute><OrderList/></ProtectedRoute>} />
             <Route path="/orders/order-list/order-details/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
             {/* Inventory */}
             <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
