@@ -13,6 +13,8 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Preloader from "../../common/Preloader";
 import BulkProductUpload from "./BulkUpload";
 import ProductPreview from "./ProductPreview";
+import ColorVariantManager from "./ColorVariantManager";
+import SizeVariantManager from "./SizeVariantManager";
 
 const ProductForm = () => {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ const ProductForm = () => {
     purchaseRate: "",
     handlingTime: "",
     categoryId: "",
+    ageByCategoryIds: [],
     brandId: "",
     thumbnail: null,
     productImages: [],
@@ -42,11 +45,19 @@ const ProductForm = () => {
     threeRating: 0,
     fourRating: 0,
     fiveRating: 0,
+    featured: false,
+    hasColorVariants: false,
+    colorVariants: [],
+    hasSizeVariants: false,
+    sizeVariants: [],
+    unitId: "",
   });
 
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
+  const [ageByCategories, setAgeByCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [sizeUnits, setSizeUnits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(false);
   const [originalSkuCode, setOriginalSkuCode] = useState("");
@@ -55,7 +66,8 @@ const ProductForm = () => {
   useEffect(() => {
     if (isEditMode && location.state?.productData) {
       const productData = location.state.productData;
-      console.log("Loaded product data for editing:", productData);
+      console.log(productData);
+
       setFormData({
         productName: productData.productName || "",
         productCode: productData.productCode || "",
@@ -78,10 +90,15 @@ const ProductForm = () => {
         twoRating: productData.twoRating || 0,
         oneRating: productData.oneRating || 0,
         id: productData.id || "",
+        ageByCategoryIds: productData.ageByCategoryIds || [],
+        hasColorVariants: productData.hasColorVariants || false,
+        colorVariants: productData.colorVariants || [],
+        hasSizeVariants: productData.hasSizeVariants || false,
+        sizeVariants: productData.sizeVariants || [],
+        unitId: productData.unitId || "",
       });
       setOriginalSkuCode(productData.skuCode || "");
     } else if (isEditMode && !location.state?.productData) {
-      // If navigated directly to edit URL without state, redirect to list
       Swal.fire({
         title: "Error!",
         text: "Invalid access. Please select a product from the list.",
@@ -115,6 +132,27 @@ const ProductForm = () => {
 
     fetchCategories();
   }, []);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const categoriesCollection = collection(db, "categories");
+        const categorySnapshot = await getDocs(categoriesCollection);
+        const categoryList = categorySnapshot.docs
+          .filter((doc) => doc.data().isActive)
+          .map((doc) => ({
+            value: doc.id,
+            label: doc.data().categoryName,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+
+        setAgeByCategories(categoryList);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Fetch brands from Firestore
   useEffect(() => {
@@ -137,6 +175,29 @@ const ProductForm = () => {
     };
 
     fetchBrands();
+  }, []);
+
+  // Fetch size units from Firestore
+  useEffect(() => {
+    const fetchSizeUnits = async () => {
+      try {
+        const unitsCollection = collection(db, "size-unit-master");
+        const unitsSnapshot = await getDocs(unitsCollection);
+        const unitsList = unitsSnapshot.docs
+          .map((doc) => ({
+            value: doc.id,
+            label: doc.data().unitName,
+            unitId: doc.data().unitId,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label));
+
+        setSizeUnits(unitsList);
+      } catch (error) {
+        console.error("Error fetching size units:", error);
+      }
+    };
+
+    fetchSizeUnits();
   }, []);
 
   const handleInputChange = (field, value) => {
@@ -242,13 +303,75 @@ const ProductForm = () => {
     if (!formData.brandId) {
       newErrors.brandId = "Brand is required";
     }
-    if (!formData.thumbnail) {
-      newErrors.thumbnail = "Thumbnail image is required";
-    } else if (typeof formData.thumbnail === 'string' && formData.thumbnail.trim() === '') {
-      newErrors.thumbnail = "Thumbnail image is required";
+
+    // Size variants validation
+    if (formData.hasSizeVariants) {
+      if (!formData.unitId) {
+        newErrors.unitId = "Unit is required when size variants are enabled";
+      }
+      if (formData.sizeVariants.length === 0) {
+        newErrors.sizeVariants = "At least one size is required when size variants are enabled";
+      } else {
+        let sizeErrors = [];
+        formData.sizeVariants.forEach((variant, index) => {
+          if (!variant.size.trim()) {
+            sizeErrors.push(`Size ${index + 1}: Size value is required`);
+          }
+          if (!variant.mrp || parseFloat(variant.mrp) <= 0) {
+            sizeErrors.push(`Size ${index + 1}: Valid MRP is required`);
+          }
+          if (!variant.salesPrice || parseFloat(variant.salesPrice) <= 0) {
+            sizeErrors.push(`Size ${index + 1}: Valid Sales Price is required`);
+          }
+          if (variant.salesPrice && variant.mrp && parseFloat(variant.salesPrice) > parseFloat(variant.mrp)) {
+            sizeErrors.push(`Size ${index + 1}: Sales Price cannot be greater than MRP`);
+          }
+          if (!variant.purchaseRate || parseFloat(variant.purchaseRate) <= 0) {
+            sizeErrors.push(`Size ${index + 1}: Valid Purchase Rate is required`);
+          }
+          if (!variant.thumbnail) {
+            sizeErrors.push(`Size ${index + 1}: Thumbnail image is required`);
+          }
+        });
+        if (sizeErrors.length > 0) {
+          newErrors.sizeVariants = sizeErrors.join('; ');
+        }
+      }
     }
-    if (formData.productImages.length === 0) {
-      newErrors.productImages = "At least one product image is required";
+
+    // Color variants validation
+    if (formData.hasColorVariants) {
+      if (formData.colorVariants.length === 0) {
+        newErrors.colorVariants = "At least one color variant is required when color variants are enabled";
+      } else {
+        // Validate each variant
+        let variantErrors = [];
+        formData.colorVariants.forEach((variant, index) => {
+          if (!variant.colorName) {
+            variantErrors.push(`Variant ${index + 1}: Color name is required`);
+          }
+          if (!variant.skuCode) {
+            variantErrors.push(`Variant ${index + 1}: SKU code is required`);
+          }
+          if (!variant.thumbnail) {
+            variantErrors.push(`Variant ${index + 1}: Thumbnail is required`);
+          }
+        });
+
+        if (variantErrors.length > 0) {
+          newErrors.colorVariants = variantErrors.join('; ');
+        }
+      }
+    } else {
+      // Original validation for non-variant products
+      if (!formData.thumbnail) {
+        newErrors.thumbnail = "Thumbnail image is required";
+      } else if (typeof formData.thumbnail === 'string' && formData.thumbnail.trim() === '') {
+        newErrors.thumbnail = "Thumbnail image is required";
+      }
+      if (formData.productImages.length === 0) {
+        newErrors.productImages = "At least one product image is required";
+      }
     }
 
     setErrors(newErrors);
@@ -343,31 +466,126 @@ const ProductForm = () => {
         }
       }
 
-      // Upload thumbnail (handles both new uploads and existing URLs)
-      let thumbnailUrl = formData.thumbnail;
-      try {
-        thumbnailUrl = await uploadToImgBB(formData.thumbnail);
-        if (!thumbnailUrl) throw new Error("Thumbnail upload failed");
-      } catch (error) {
-        console.error("Error uploading thumbnail:", error);
-        throw new Error("Failed to upload thumbnail: " + error.message);
+      // NEW: Check for duplicate variant SKUs
+      if (formData.hasColorVariants) {
+        const variantSkus = formData.colorVariants.map(v => v.skuCode);
+        const productsRef = collection(db, "products");
+
+        for (const sku of variantSkus) {
+          const q = query(productsRef, where("colorVariants", "array-contains", { skuCode: sku }));
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty && (!isEditMode || querySnapshot.docs[0].id !== productId)) {
+            Swal.fire({
+              icon: "warning",
+              title: "Duplicate Variant SKU!",
+              text: `Variant SKU "${sku}" already exists. Please use unique SKU codes.`,
+            });
+            setLoading(false);
+            return;
+          }
+        }
       }
 
-      // Upload product images
-      const productImageUrls = [];
-      for (const img of formData.productImages) {
+      let thumbnailUrl = formData.thumbnail;
+      let productImageUrls = [];
+      let uploadedColorVariants = [];
+      let uploadedSizeVariants = [];
+
+      // NEW: Handle size variants
+      if (formData.hasSizeVariants) {
+        // Upload images for each size variant
+        for (const variant of formData.sizeVariants) {
+          try {
+            // Upload variant thumbnail
+            const variantThumbnailUrl = await uploadToImgBB(variant.thumbnail);
+
+            // Upload variant product images
+            const variantImageUrls = [];
+            if (variant.productImages && variant.productImages.length > 0) {
+              for (const img of variant.productImages) {
+                const url = await uploadToImgBB(img);
+                if (url) variantImageUrls.push(url);
+              }
+            }
+
+            uploadedSizeVariants.push({
+              size: variant.size,
+              mrp: variant.mrp,
+              salesPrice: variant.salesPrice,
+              purchaseRate: variant.purchaseRate,
+              thumbnail: variantThumbnailUrl,
+              productImages: variantImageUrls,
+              isActive: variant.isActive
+            });
+          } catch (error) {
+            console.error(`Error uploading images for size ${variant.size}:`, error);
+            throw new Error(`Failed to upload images for size ${variant.size}: ${error.message}`);
+          }
+        }
+      }
+
+      // NEW: Handle color variants
+      if (formData.hasColorVariants) {
+        // Upload images for each color variant
+        for (const variant of formData.colorVariants) {
+          try {
+            // Upload variant thumbnail
+            const variantThumbnailUrl = await uploadToImgBB(variant.thumbnail);
+
+            // Upload variant product images
+            const variantImageUrls = [];
+            for (const img of variant.productImages) {
+              const url = await uploadToImgBB(img);
+              if (url) variantImageUrls.push(url);
+            }
+
+            uploadedColorVariants.push({
+              colorId: variant.colorId,
+              colorName: variant.colorName,
+              colorCode: variant.colorCode,
+              skuCode: variant.skuCode,
+              thumbnail: variantThumbnailUrl,
+              productImages: variantImageUrls,
+              stock: variant.stock,
+              isActive: variant.isActive
+            });
+          } catch (error) {
+            console.error(`Error uploading images for variant ${variant.colorName}:`, error);
+            throw new Error(`Failed to upload images for ${variant.colorName}: ${error.message}`);
+          }
+        }
+      } else {
+        // Original image upload logic for non-variant products
         try {
-          const url = await uploadToImgBB(img);
-          if (url) productImageUrls.push(url);
+          thumbnailUrl = await uploadToImgBB(formData.thumbnail);
+          if (!thumbnailUrl) throw new Error("Thumbnail upload failed");
         } catch (error) {
-          console.error("Error uploading product image:", error);
-          throw new Error("Failed to upload product images: " + error.message);
+          console.error("Error uploading thumbnail:", error);
+          throw new Error("Failed to upload thumbnail: " + error.message);
+        }
+
+        for (const img of formData.productImages) {
+          try {
+            const url = await uploadToImgBB(img);
+            if (url) productImageUrls.push(url);
+          } catch (error) {
+            console.error("Error uploading product image:", error);
+            throw new Error("Failed to upload product images: " + error.message);
+          }
         }
       }
 
       // Get category & brand names
       const selectedCategory = categories.find((cat) => cat.value === formData.categoryId);
       const selectedBrand = brands.find((br) => br.value === formData.brandId);
+
+      // Calculate total stock for variant products
+      const totalStock = formData.hasColorVariants
+        ? uploadedColorVariants.reduce((sum, v) => sum + v.stock, 0)
+        : formData.hasSizeVariants
+          ? uploadedSizeVariants.reduce((sum, v) => sum + 0, 0) // Size variants don't have stock field
+          : Number(formData.stock);
 
       // Prepare product data
       const productData = {
@@ -384,20 +602,26 @@ const ProductForm = () => {
         categoryName: selectedCategory?.label || "",
         brandId: formData.brandId,
         brandName: selectedBrand?.label || "",
-        thumbnail: thumbnailUrl,
-        productImages: productImageUrls,
+        unitId: formData.unitId,
+        hasSizeVariants: formData.hasSizeVariants,
+        sizeVariants: uploadedSizeVariants,
+        hasColorVariants: formData.hasColorVariants,
+        colorVariants: uploadedColorVariants,
+        thumbnail: formData.hasColorVariants ? (uploadedColorVariants[0]?.thumbnail || "") : formData.hasSizeVariants ? (uploadedSizeVariants[0]?.thumbnail || "") : thumbnailUrl,
+        productImages: formData.hasColorVariants ? (uploadedColorVariants[0]?.productImages || []) : formData.hasSizeVariants ? (uploadedSizeVariants[0]?.productImages || []) : productImageUrls,
         isActive: formData.isActive,
         oneRating: formData.oneRating,
         twoRating: formData.twoRating,
         threeRating: formData.threeRating,
         fourRating: formData.fourRating,
         fiveRating: formData.fiveRating,
-        stock: formData.stock,
+        stock: totalStock,
         updatedAt: serverTimestamp(),
+        ageByCategoriesIds: formData.ageByCategoryIds,
+        featured: formData.featured || false,
       };
 
       if (isEditMode) {
-        // Update existing product
         await updateDoc(doc(db, "products", productId), {
           ...productData,
           productId: productId,
@@ -413,7 +637,6 @@ const ProductForm = () => {
         });
         navigate('/product-list');
       } else {
-        // Create new product
         const docRef = doc(collection(db, "products"));
         await setDoc(docRef, {
           ...productData,
@@ -431,29 +654,6 @@ const ProductForm = () => {
         });
 
         navigate('/product-list');
-        // Reset form for create mode
-        setFormData({
-          productName: "",
-          productCode: "",
-          skuCode: "",
-          shortDescription: "",
-          longDescription: "",
-          mrp: "",
-          salesPrice: "",
-          purchaseRate: "",
-          handlingTime: "",
-          categoryId: "",
-          brandId: "",
-          thumbnail: null,
-          productImages: [],
-          isActive: true,
-          oneRating: 0,
-          stock: 1,
-          twoRating: 0,
-          threeRating: 0,
-          fourRating: 0,
-          fiveRating: 0,
-        });
       }
     } catch (error) {
       console.error("Error saving product:", error);
@@ -503,7 +703,14 @@ const ProductForm = () => {
         />
       )}
       <FormContainer
-        title={isEditMode ? "Edit Product" : "Add Product"}
+       title={
+  viewMode
+    ? "View Product"
+    : isEditMode
+    ? "Edit Product"
+    : "Add Product"
+}
+
         onCancel={handleCancel}
         onSubmit={handleSubmit}
         cancelText={viewMode ? null : "Cancel"}
@@ -516,225 +723,308 @@ const ProductForm = () => {
         })}
 
       >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <TextInput
-            label="Product Name"
-            placeholder="Enter product name"
-            value={formData.productName}
-            onChange={(value) => handleInputChange("productName", value)}
-            error={errors.productName}
-            disabled={viewMode}
-            required
-          />
-          <TextInput
-            label="Product Code"
-            placeholder="Enter product code"
-            value={formData.productCode}
-            onChange={(value) => handleInputChange("productCode", value)}
-            error={errors.productCode}
-            disabled={viewMode}
-            required
-          />
-          <TextInput
-            label="SKU Code"
-            placeholder="Enter SKU code"
-            value={formData.skuCode}
-            onChange={(value) => handleInputChange("skuCode", value)}
-            error={errors.skuCode}
-            disabled={viewMode}
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <TextArea
-            label="Short Description"
-            placeholder="Enter short description"
-            value={formData.shortDescription}
-            onChange={(value) => handleInputChange("shortDescription", value)}
-            error={errors.shortDescription}
-            required
-            disabled={viewMode}
-            rows={3}
-          />
-          <TextArea
-            label="Long Description"
-            placeholder="Enter detailed description"
-            value={formData.longDescription}
-            onChange={(value) => handleInputChange("longDescription", value)}
-            error={errors.longDescription}
-            required
-            rows={3}
-            disabled={viewMode}
-            maxLength={1000}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
-          <TextInput
-            label="MRP"
-            placeholder="MRP"
-            value={formData.mrp}
-            onChange={(value) => handleInputChange("mrp", value)}
-            error={errors.mrp}
-            required
-            type="number"
-            disabled={viewMode}
-            min="0"
-            step="0.01"
-          />
-          <TextInput
-            label="Sales Price"
-            placeholder="Sales price"
-            value={formData.salesPrice}
-            onChange={(value) => handleInputChange("salesPrice", value)}
-            error={errors.salesPrice}
-            required
-            type="number"
-            disabled={viewMode}
-            min="0"
-            step="0.01"
-          />
-          <TextInput
-            label="Purchase Rate"
-            placeholder="Purchase rate"
-            value={formData.purchaseRate}
-            onChange={(value) => handleInputChange("purchaseRate", value)}
-            error={errors.purchaseRate}
-            required
-            type="number"
-            min="0"
-            disabled={viewMode}
-            step="0.01"
-          />
-          <TextInput
-            label="Stock Quantity"
-            placeholder="Stock"
-            value={formData.stock}
-            onChange={(value) => handleInputChange("stock", value)}
-            error={errors.stock}
-            required
-            type="number"
-            min="0"
-            disabled={viewMode}
-          />
-          <TextInput
-            label="Handling Time"
-            placeholder="Days"
-            value={formData.handlingTime}
-            onChange={(value) => handleInputChange("handlingTime", value)}
-            error={errors.handlingTime}
-            required
-            type="number"
-            min="0"
-            disabled={viewMode}
-          />
-          <SearchableDropdown
-            label="Category"
-            options={categories}
-            value={formData.categoryId}
-            onChange={(value) => handleInputChange("categoryId", value)}
-            placeholder="Select category"
-            error={errors.categoryId}
-            required
-            multiple
-            disabled={viewMode}
-          />
-          <SearchableDropdown
-            label="Brand"
-            options={brands}
-            value={formData.brandId}
-            onChange={(value) => handleInputChange("brandId", value)}
-            placeholder="Select brand"
-            error={errors.brandId}
-            required
-            disabled={viewMode}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {viewMode && (
-            <>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Thumbnail
-              </label>
-              <div className="w-20 h-20 overflow-hidden rounded-md">
-                <img src={formData.thumbnail} alt="" />
-              </div>
-            </>
-          )}
-
-          {
-            !viewMode && <div>
-              <div>
-                <SingleImageUpload
-                  label="Thumbnail"
-                  placeholder="Upload thumbnail"
-                  maxSizeKB={200}
-                  acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-                  onImageSelect={(image) => handleInputChange("thumbnail", image)}
-                  onImageRemove={() => handleInputChange("thumbnail", null)}
-                  defaultImage={isEditMode ? formData.thumbnail : null}
-                  required
-                  disabled={viewMode}
-                />
-                {errors.thumbnail && (
-                  <p className="mt-1 text-sm text-red-600">{errors.thumbnail}</p>
-                )}
-              </div>
+        {!viewMode && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <TextInput
+                label="Product Name"
+                placeholder="Enter product name"
+                value={formData.productName}
+                onChange={(value) => handleInputChange("productName", value)}
+                error={errors.productName}
+                disabled={viewMode}
+                required
+              />
+              <TextInput
+                label="Product Code"
+                placeholder="Enter product code"
+                value={formData.productCode}
+                onChange={(value) => handleInputChange("productCode", value)}
+                error={errors.productCode}
+                disabled={viewMode}
+                required
+              />
+              <TextInput
+                label="SKU Code"
+                placeholder="Enter SKU code"
+                value={formData.skuCode}
+                onChange={(value) => handleInputChange("skuCode", value)}
+                error={errors.skuCode}
+                disabled={viewMode}
+                required
+              />
             </div>
-          }
-          {viewMode && (
-            <>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Images
-              </label>
-              {
-                formData.productImages.length === 0 ? (
-                  <p>No images available</p>
-                ) : (
-                  <div className="flex space-x-2 overflow-x-auto">
-                    {formData.productImages.map((imgUrl, index) => (
-                      <div key={index} className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-md">
-                        <img src={imgUrl} alt={`Product ${index + 1}`} />
-                      </div>
-                    ))}
-                  </div>
-                )
-              }
-            </>
-          )}
-          {!viewMode && <div>
-            <div>
-              <MultipleImageUpload
-                label="Product Images"
-                placeholder="Upload product images"
-                maxSizeKB={500}
-                maxImages={5}
-                acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
-                onImagesSelect={(images) => handleInputChange("productImages", images)}
-                onImagesUpdate={(images) => handleInputChange("productImages", images)}
-                defaultImages={isEditMode ? formData.productImages : []}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <TextArea
+                label="Short Description"
+                placeholder="Enter short description"
+                value={formData.shortDescription}
+                onChange={(value) => handleInputChange("shortDescription", value)}
+                error={errors.shortDescription}
+                required
+                disabled={viewMode}
+                rows={3}
+              />
+              <TextArea
+                label="Long Description"
+                placeholder="Enter detailed description"
+                value={formData.longDescription}
+                onChange={(value) => handleInputChange("longDescription", value)}
+                error={errors.longDescription}
+                required
+                rows={3}
+                disabled={viewMode}
+                maxLength={1000}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
+              <TextInput
+                label="MRP"
+                placeholder="MRP"
+                value={formData.mrp}
+                onChange={(value) => handleInputChange("mrp", value)}
+                error={errors.mrp}
+                required
+                type="number"
+                disabled={viewMode}
+                min="0"
+                step="0.01"
+              />
+              <TextInput
+                label="Sales Price"
+                placeholder="Sales price"
+                value={formData.salesPrice}
+                onChange={(value) => handleInputChange("salesPrice", value)}
+                error={errors.salesPrice}
+                required
+                type="number"
+                disabled={viewMode}
+                min="0"
+                step="0.01"
+              />
+              <TextInput
+                label="Purchase Rate"
+                placeholder="Purchase rate"
+                value={formData.purchaseRate}
+                onChange={(value) => handleInputChange("purchaseRate", value)}
+                error={errors.purchaseRate}
+                required
+                type="number"
+                min="0"
+                disabled={viewMode}
+                step="0.01"
+              />
+              <TextInput
+                label="Stock Quantity"
+                placeholder="Stock"
+                value={formData.stock}
+                onChange={(value) => handleInputChange("stock", value)}
+                error={errors.stock}
+                required
+                type="number"
+                min="0"
+                disabled={viewMode}
+              />
+              <TextInput
+                label="Handling Time"
+                placeholder="Days"
+                value={formData.handlingTime}
+                onChange={(value) => handleInputChange("handlingTime", value)}
+                error={errors.handlingTime}
+                required
+                type="number"
+                min="0"
+                disabled={viewMode}
+              />
+              <SearchableDropdown
+                label="Category"
+                options={categories}
+                value={formData.categoryId}
+                onChange={(value) => handleInputChange("categoryId", value)}
+                placeholder="Select category"
+                error={errors.categoryId}
+                required
+                multiple
+                disabled={viewMode}
+              />
+              <SearchableDropdown
+                label="Age By Category"
+                options={ageByCategories}
+                value={formData.ageByCategoryIds}
+                onChange={(value) => handleInputChange("ageByCategoryIds", value)}
+                placeholder="Select age by category"
+                error={errors.ageByCategoryIds}
+                required
+                multiple
+                disabled={viewMode}
+              />
+              <SearchableDropdown
+                label="Brand"
+                options={brands}
+                value={formData.brandId}
+                onChange={(value) => handleInputChange("brandId", value)}
+                placeholder="Select brand"
+                error={errors.brandId}
                 required
                 disabled={viewMode}
               />
-              {errors.productImages && (
-                <p className="mt-1 text-sm text-red-600">{errors.productImages}</p>
-              )}
-            </div></div>}
-        </div>
+              <SearchableDropdown
+                label="Unit"
+                options={sizeUnits}
+                value={formData.unitId}
+                onChange={(value) => handleInputChange("unitId", value)}
+                placeholder="Select unit"
+                error={errors.unitId}
+                disabled={viewMode}
+              />
+            </div>
+            <div className="col-span-full">
+              <div className="flex items-center space-x-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="hasSizeVariants"
+                  checked={formData.hasSizeVariants}
+                  onChange={(e) => handleInputChange("hasSizeVariants", e.target.checked)}
+                  className="accent-[#81184e]"
+                  disabled={viewMode}
+                />
+                <label htmlFor="hasSizeVariants" className="text-sm font-medium text-gray-700">
+                  Enable Multiple Sizes
+                </label>
+                <span className="text-xs text-gray-500">
+                  (Check this if product comes in multiple sizes)
+                </span>
+              </div>
 
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            disabled={viewMode}
-            id="isActive"
-            checked={formData.isActive}
-            onChange={(e) => handleInputChange("isActive", e.target.checked)}
-            className="accent-[#81184e]"
-          />
-          <label htmlFor="isActive">Is Active</label>
-        </div>
+              {formData.hasSizeVariants && (
+                <SizeVariantManager
+                  variants={formData.sizeVariants}
+                  onVariantsChange={(variants) => handleInputChange("sizeVariants", variants)}
+                  disabled={viewMode}
+                  errors={errors}
+                />
+              )}
+            </div>
+
+            <div className="col-span-full">
+              <div className="flex items-center space-x-2 mb-4">
+                <input
+                  type="checkbox"
+                  id="hasColorVariants"
+                  checked={formData.hasColorVariants}
+                  onChange={(e) => handleInputChange("hasColorVariants", e.target.checked)}
+                  className="accent-[#81184e]"
+                  disabled={viewMode}
+                />
+                <label htmlFor="hasColorVariants" className="text-sm font-medium text-gray-700">
+                  Enable Color Variants
+                </label>
+                <span className="text-xs text-gray-500">
+                  (Check this if product comes in multiple colors)
+                </span>
+              </div>
+
+              {formData.hasColorVariants && (
+                <ColorVariantManager
+                  variants={formData.colorVariants}
+                  onVariantsChange={(variants) => handleInputChange("colorVariants", variants)}
+                  disabled={viewMode}
+                  errors={errors}
+                />
+              )}
+            </div>
+
+            {
+              !formData.hasColorVariants && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {viewMode && (
+                    <>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Thumbnail
+                      </label>
+                      <div className="w-20 h-20 overflow-hidden rounded-md">
+                        <img src={formData.thumbnail} alt="" />
+                      </div>
+                    </>
+                  )}
+
+                  {
+                    !viewMode && <div>
+                      <div>
+                        <SingleImageUpload
+                          label="Thumbnail"
+                          placeholder="Upload thumbnail"
+                          maxSizeKB={200}
+                          acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+                          onImageSelect={(image) => handleInputChange("thumbnail", image)}
+                          onImageRemove={() => handleInputChange("thumbnail", null)}
+                          defaultImage={isEditMode ? formData.thumbnail : null}
+                          required
+                          disabled={viewMode}
+                        />
+                        {errors.thumbnail && (
+                          <p className="mt-1 text-sm text-red-600">{errors.thumbnail}</p>
+                        )}
+                      </div>
+                    </div>
+                  }
+                  {viewMode && (
+                    <>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Product Images
+                      </label>
+                      {
+                        formData.productImages.length === 0 ? (
+                          <p>No images available</p>
+                        ) : (
+                          <div className="flex space-x-2 overflow-x-auto">
+                            {formData.productImages.map((imgUrl, index) => (
+                              <div key={index} className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-md">
+                                <img src={imgUrl} alt={`Product ${index + 1}`} />
+                              </div>
+                            ))}
+                          </div>
+                        )
+                      }
+                    </>
+                  )}
+                  {!viewMode && <div>
+                    <div>
+                      <MultipleImageUpload
+                        label="Product Images"
+                        placeholder="Upload product images"
+                        maxSizeKB={500}
+                        maxImages={5}
+                        acceptedTypes={["image/jpeg", "image/png", "image/webp"]}
+                        onImagesSelect={(images) => handleInputChange("productImages", images)}
+                        onImagesUpdate={(images) => handleInputChange("productImages", images)}
+                        defaultImages={isEditMode ? formData.productImages : []}
+                        required
+                        disabled={viewMode}
+                      />
+                      {errors.productImages && (
+                        <p className="mt-1 text-sm text-red-600">{errors.productImages}</p>
+                      )}
+                    </div></div>}
+                </div>
+              )
+            }
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                disabled={viewMode}
+                id="isActive"
+                checked={formData.isActive}
+                onChange={(e) => handleInputChange("isActive", e.target.checked)}
+                className="accent-[#81184e]"
+              />
+              <label htmlFor="isActive">Is Active</label>
+            </div>
+          </>
+        )}
         <ProductPreview formData={formData} />
       </FormContainer>
     </>

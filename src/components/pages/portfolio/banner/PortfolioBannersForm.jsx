@@ -51,7 +51,7 @@ const PortfolioBannersForm = () => {
         icon: "error",
         confirmButtonText: "OK",
       }).then(() => {
-        navigate("/portfolio-banners/portfolio-banner-list");
+        navigate("/portfolio/Banner/PortfolioBannerList");
       });
     }
   }, [isEditMode, location.state, navigate, portfolioBannerId]);
@@ -245,7 +245,7 @@ const PortfolioBannersForm = () => {
           timer: 2000,
           toast: true,
         });
-        navigate("/portfolio-banners/portfolio-banner-list");
+        navigate("/portfolio/Banner/PortfolioBannerList");
       } else {
         // Create new portfolio banner
         const docRef = doc(collection(db, "portfolioBanner"));

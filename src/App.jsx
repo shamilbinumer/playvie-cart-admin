@@ -1,5 +1,5 @@
 import {
-  HashRouter as Router,
+  BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
@@ -45,6 +45,11 @@ import RecomentedForYouForm from "./components/pages/Offers/RecomentedForYou/Rec
 import RecomentedForYouList from "./components/pages/Offers/RecomentedForYou/RecomentedForYouList";
 import PortfolioBannerList from "./components/pages/portfolio/banner/PortfolioBannerList";
 import PortfolioBannersForm from "./components/pages/portfolio/banner/PortfolioBannersForm";
+import CouponManageList from "./components/pages/CouponManagement/CouponManageList";
+import CancelledOrders from "./components/pages/Orders/CancelledOrders";
+import ReturnOrdersList from "./components/pages/Orders/ReturnedOrders/ReturnOrdersList";
+import ReturnedOrderDetailPage from "./components/pages/Orders/ReturnedOrders/ReturnedOrderDetailPage";
+import SizeUnit from "./components/pages/SizeUnit/SizeUnit";
 
 
 function AppLayout() {
@@ -53,8 +58,6 @@ function AppLayout() {
   // Routes that don't use Navbar/Sidebar
   const noLayoutRoutes = ["/create-new-admin", "/login"];
   const isNoLayout = noLayoutRoutes.includes(location.pathname);
-
-
 
   return (
     <>
@@ -83,6 +86,8 @@ function AppLayout() {
             <Route path="/master/brand-list" element={<ProtectedRoute><BrandList /></ProtectedRoute>} />
             <Route path="/master/add-brand" element={<ProtectedRoute><BrandForm /></ProtectedRoute>} />
             <Route path="/master/edit-brand/:brandId" element={<ProtectedRoute><BrandForm /></ProtectedRoute>} />
+            {/* Size Unit */}
+            <Route path="/master/size-unit-list" element={<ProtectedRoute><SizeUnit /></ProtectedRoute>} />
             {/* Product */}
             <Route path="/product-list" element={<ProtectedRoute><ProductList /></ProtectedRoute>} />
             <Route path="/add-product" element={<ProtectedRoute><ProductForm /></ProtectedRoute>} />
@@ -100,12 +105,16 @@ function AppLayout() {
             <Route path="/portfolio/serviceEnquiry" element={<ProtectedRoute><ServiceEnquiryList /></ProtectedRoute>} />
             <Route path="/portfolio/gallery" element={<ProtectedRoute><GalleryList /></ProtectedRoute>} />
             <Route path="/portfolio/gallery/galleryForm" element={<ProtectedRoute><PortFolioGalleryForm /></ProtectedRoute>} />
+            <Route path="/portfolio/gallery/edit-gallery/:galleryId" element={<ProtectedRoute><PortFolioGalleryForm /></ProtectedRoute>} />
             <Route path="/portfolio/blog/Blog" element={<ProtectedRoute><BlogList /></ProtectedRoute>} />
             <Route path="/portfolio/blog/BlogForm" element={<ProtectedRoute><BlogForm /></ProtectedRoute>} />
+            <Route path="/portfolio/blog/edit-blog/:blogId" element={<ProtectedRoute><BlogForm /></ProtectedRoute>} />
             <Route path="/portfolio/service/ServiceForm" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
+            <Route path="/portfolio/service/edit-service/:serviceId" element={<ProtectedRoute><ServiceForm /></ProtectedRoute>} />
             <Route path="/portfolio/service/ServiceList" element={<ProtectedRoute><ServiceList /></ProtectedRoute>} />
             <Route path="/portfolio/Banner/PortfolioBannerList" element={<ProtectedRoute><PortfolioBannerList/></ProtectedRoute>} />
             <Route path="/portfolio/Banner/PortfolioBannerForm" element={<ProtectedRoute><PortfolioBannersForm/></ProtectedRoute>} />
+            <Route path="/portfolio/Banner/PortfolioBannerEdit/:portfolioBannerId" element={<ProtectedRoute><PortfolioBannersForm/></ProtectedRoute>} />
             {/* PlaySchool Website */}
             <Route path="/playschool/admissionEnquiry" element={<ProtectedRoute><AdmissionEnquiryList /></ProtectedRoute>} />
             <Route path="/playschool/galley-list" element={<ProtectedRoute><PlayschoolGalleyList /></ProtectedRoute>} />
@@ -115,12 +124,18 @@ function AppLayout() {
             {/* Orders */}
             <Route path="/orders/order-list" element={<ProtectedRoute><OrderList/></ProtectedRoute>} />
             <Route path="/orders/order-list/order-details/:orderId" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
+            <Route path="/orders/cancelled-orders" element={<ProtectedRoute><CancelledOrders /></ProtectedRoute>} />
+            <Route path="/orders/return-orders" element={<ProtectedRoute><ReturnOrdersList /></ProtectedRoute>} />
+            <Route path="/orders/return-order-details/:orderId" element={<ProtectedRoute><ReturnedOrderDetailPage /></ProtectedRoute>} />
             {/* Inventory */}
             <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
             {/* Offers */}
             <Route path="/offers/recommended-for-you" element={<ProtectedRoute><RecomentedForYouList/></ProtectedRoute>} />
             <Route path="/offers/add-recommended-for-you" element={<ProtectedRoute><RecomentedForYouForm /></ProtectedRoute>} />
             <Route path="/recommended-for-you/edit-recommended-for-you/:recomentedForYouId" element={<ProtectedRoute><RecomentedForYouForm /></ProtectedRoute>} />
+
+          
+            <Route path="/offers/coupon-management" element={<ProtectedRoute><CouponManageList /></ProtectedRoute>} />
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />

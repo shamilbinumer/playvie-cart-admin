@@ -88,7 +88,7 @@ const ServiceList = () => {
   };
 
   const handleEdit = (service) => {
-    navigate(`/master/service-form/${service.id}`, {
+    navigate(`/portfolio/service/edit-service/${service.id}`, {
       state: { serviceData: service },
     });
   };

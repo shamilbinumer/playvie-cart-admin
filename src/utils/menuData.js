@@ -27,10 +27,30 @@ export const menuData = [
     children: []
   },
   {
-    id: 44,
-    title: "Orders",
+    id: 4444,
+    title: "Manage Orders",
     icon: ListOrderedIcon,
-    url: "/orders/order-list"
+    url: null,
+    children: [
+        {
+            id: 441,
+            title: "Order List",
+            icon: ListOrderedIcon,
+            url: "/orders/order-list"
+        },
+        {
+            id: 442,
+            title: "Cancelled Orders",
+            icon: ListOrderedIcon,
+            url: "/orders/cancelled-orders"
+        },
+        {
+            id: 443,
+            title: "Return Orders",
+            icon: ListOrderedIcon,
+            url: "/orders/return-orders"
+        }
+    ]
   },
   {
     id: 2,
@@ -55,6 +75,12 @@ export const menuData = [
         title: "Brand",
         icon: Tag,
         url: "/master/brand-list"
+      },
+      {
+        id: 2222,
+        title: "Size Unit",
+        icon: Package,
+        url: "/master/size-unit-list"
       },
     ]
   },
@@ -86,9 +112,15 @@ export const menuData = [
     children: [
       {
         id: 441,
-        title: "Recommended Products",
+        title: "Recommended For You",
         icon: Package,
         url: "/offers/recommended-for-you"
+      },
+      {
+        id: 442,
+        title: "Coupon Management",
+        icon: Package,
+        url: "/offers/coupon-management"
       }
     ]
   },

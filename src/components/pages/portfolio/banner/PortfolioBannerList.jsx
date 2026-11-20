@@ -31,7 +31,6 @@ const PortfolioBannerList = () => {
       try {
         setLoading(true);
         setError(null);
-        console.log("Fetching portfolio banners...");
         
         const querySnapshot = await getDocs(collection(db, "portfolioBanner"));
         const portfolioBannerList = querySnapshot.docs.map((doc, index) => ({
@@ -39,7 +38,6 @@ const PortfolioBannerList = () => {
           ...doc.data(),
           index: index + 1,
         }));
-        console.log(portfolioBannerList, "portfolio banners");
         setPortfolioBanners(portfolioBannerList);
       } catch (error) {
         console.error("Error fetching portfolio banners: ", error);
@@ -53,7 +51,7 @@ const PortfolioBannerList = () => {
   }, []);
 
   const handleEdit = (portfolioBanner) => {
-    navigate(`/portfolio-banners/edit-portfolio-banner/${portfolioBanner.id}`, {
+    navigate(`/portfolio/Banner/PortfolioBannerEdit/${portfolioBanner.id}`, {
       state: {
         portfolioBannerData: {
           bannerName: portfolioBanner.bannerName,

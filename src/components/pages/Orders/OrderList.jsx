@@ -263,7 +263,10 @@ const OrderList = () => {
     if (initialLoading) {
         return (
             <div>
-                <BreadCrumb items={[{ label: "Order List", path: "#" }]} />
+                 <BreadCrumb items={[
+                { label: "Manage Orders", path: "#" },
+                { label: "Order List", path: "#" }
+                ]} />
                 <PageHeader
                     title="Order List"
                     className="border-b border-gray-200 pb-4"
@@ -275,7 +278,10 @@ const OrderList = () => {
 
     return (
         <div>
-            <BreadCrumb items={[{ label: "Order List", path: "#" }]} />
+            <BreadCrumb items={[
+                { label: "Manage Orders", path: "#" },
+                { label: "Order List", path: "#" }
+                ]} />
             <PageHeader
                 title="Order List"
                 className="border-b border-gray-200 pb-4"

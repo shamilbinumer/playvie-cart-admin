@@ -64,7 +64,7 @@ const BlogList = () => {
   ];
 
   const handleEdit = (item) => {
-    navigate(`/blog/edit-blog/${item.id}`, {
+    navigate(`/portfolio/blog/edit-blog/${item.id}`, {
       state: {
         blogData: {
           title: item.title,

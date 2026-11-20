@@ -12,7 +12,8 @@ const ServerPaginatedDataTable = ({
   itemsPerPage,
   onPageChange,
   onItemsPerPageChange,
-  loading = false
+  loading = false,
+  pageItemsCount=[10, 25, 50, 100]
 }) => {
   // Calculate pagination values
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -69,60 +70,63 @@ const ServerPaginatedDataTable = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col">
+      {/* Scrollable Table Area */}
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-200">
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  {column.title}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {loading ? (
+        <div className="overflow-y-auto" style={{ maxHeight: "59vh" }}>
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-200 sticky top-0 z-10">
               <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-6 py-8 text-center text-gray-500"
-                >
-                  <div className="flex justify-center items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  </div>
-                </td>
+                {columns.map((column) => (
+                  <th
+                    key={column.key}
+                    className="px-6 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    {column.title}
+                  </th>
+                ))}
               </tr>
-            ) : data.length > 0 ? (
-              data.map((item, index) => (
-                <tr key={item.id || item.productId || index} className="hover:bg-gray-50">
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className="px-6 py-1 whitespace-nowrap text-sm text-gray-900"
-                    >
-                      {renderCell
-                        ? renderCell(item, column, startIndex + index)
-                        : item[column.key] || "-"}
-                    </td>
-                  ))}
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
+                    <div className="flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={columns.length}
-                  className="px-6 py-8 text-center text-gray-500"
-                >
-                  No data available
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              ) : data.length > 0 ? (
+                data.map((item, index) => (
+                  <tr key={item.id || item.productId || index} className="hover:bg-gray-50">
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        className="px-6 py-1 whitespace-nowrap text-sm text-gray-900"
+                      >
+                        {renderCell
+                          ? renderCell(item, column, startIndex + index)
+                          : item[column.key] || "-"}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={columns.length}
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
+                    No data available
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Pagination Controls */}
@@ -148,11 +152,11 @@ const ServerPaginatedDataTable = ({
                 disabled={loading}
                 className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
+                {pageItemsCount.map((count) => (
+                  <option key={count} value={count}>
+                    {count}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

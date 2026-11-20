@@ -68,7 +68,7 @@ const GalleryList = () => {
   ];
 
   const handleEdit = (item) => {
-    navigate(`/master/edit-gallery/${item.id}`, {
+    navigate(`/portfolio/gallery/edit-gallery/${item.id}`, {
       state: {
         galleryData: {
           title: item.title,
